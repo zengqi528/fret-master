@@ -1,5 +1,5 @@
 // ─── SVG Fretboard Renderer ────────────────────────────────────
-// Realistic guitar fretboard with wood texture, metal frets, and interactive hit areas
+// Realistic guitar fretboard — true-to-life proportions
 
 import { getNoteAt } from './music.js';
 
@@ -16,46 +16,70 @@ export class Fretboard {
     this.container = container;
     this.numFrets = opts.numFrets || 12;
 
-    // Layout constants
-    this.W = 1200;
-    this.H = 260;
-    this.pad = { l: 55, r: 20, t: 28, b: 28 };
-    this.nutW = 6;
-    this.boardW = this.W - this.pad.l - this.pad.r;
+    // Layout — wider aspect ratio like a real fretboard
+    this.W = 1400;
+    this.H = 200;
+    this.pad = { l: 10, r: 16, t: 18, b: 18 };
+    this.nutW = 8;
+
+    this.boardW = this.W - this.pad.l - this.pad.r - this.nutW;
     this.boardH = this.H - this.pad.t - this.pad.b;
-    this.strSpacing = this.boardH / 5; // 6 strings → 5 gaps
 
+    // Real guitar fret positions: each fret at L*(1 - 1/2^(n/12))
+    // Use 85% real + 15% linear blend so high frets stay usable on screen
     this.fretX = this._calcFretX();
-    this.onFretClick = null; // callback(stringIdx, fret)
 
+    // String Y positions — slight variation like a real guitar
+    // Low E (string 0) at bottom, high e (string 5) at top
+    this.stringY = this._calcStringY();
+
+    this.onFretClick = null;
     this._highlights = [];
     this._build();
   }
 
-  /* ── fret positions: blend of real scale + linear for playability ── */
+  /* ── Fret positions: mostly real proportions ── */
   _calcFretX() {
     const pos = [0];
     for (let f = 1; f <= this.numFrets; f++) {
+      // True guitar fret position
       const real = this.boardW * (1 - 1 / Math.pow(2, f / 12));
+      // Small linear blend to keep high frets tappable
       const lin = (f / this.numFrets) * this.boardW;
-      pos.push(real * 0.6 + lin * 0.4);
+      pos.push(real * 0.85 + lin * 0.15);
     }
     return pos;
   }
 
-  /* ── absolute X/Y for a string/fret intersection ── */
-  posX(fret) {
-    if (fret === 0) return this.pad.l;
-    const left = this.pad.l + this.nutW + this.fretX[fret - 1];
-    const right = this.pad.l + this.nutW + this.fretX[fret];
-    return (left + right) / 2;
-  }
-  posY(stringIdx) {
-    // stringIdx 0 = low E (bottom), 5 = high E (top)
-    return this.pad.t + (5 - stringIdx) * this.strSpacing;
+  /* ── String Y positions ── */
+  _calcStringY() {
+    const ys = [];
+    // Strings 0-5 (low E to high e)
+    // Real guitar: strings are roughly evenly spaced at the saddle
+    // but the outer strings have a bit more edge margin
+    const usableH = this.boardH - 16; // edge margin top+bottom
+    const topEdge = this.pad.t + 8;
+    for (let s = 0; s < 6; s++) {
+      // stringIdx 0 = low E (bottom), 5 = high e (top)
+      ys.push(topEdge + usableH - (s / 5) * usableH);
+    }
+    return ys;
   }
 
-  /* ── build entire SVG ── */
+  /* ── X/Y for a string/fret ── */
+  posX(fret) {
+    const nutEnd = this.pad.l + this.nutW;
+    if (fret === 0) return this.pad.l + this.nutW * 0.5;
+    const left = nutEnd + (fret > 1 ? this.fretX[fret - 1] : 0);
+    const right = nutEnd + this.fretX[fret];
+    return (left + right) / 2;
+  }
+
+  posY(stringIdx) {
+    return this.stringY[stringIdx];
+  }
+
+  /* ── Build entire SVG ── */
   _build() {
     this.container.innerHTML = '';
     const svg = el('svg', {
@@ -73,46 +97,42 @@ export class Fretboard {
     this._strings(svg);
     this._hitAreas(svg);
 
-    // Highlight layer on top
     this.hlGroup = el('g', { class: 'hl-layer' });
     svg.appendChild(this.hlGroup);
 
     this.container.appendChild(svg);
   }
 
-  /* ── SVG defs: gradients & filters ── */
+  /* ── Defs: gradients & filters ── */
   _defs(svg) {
     const defs = el('defs');
 
-    // Wood gradient
-    const wood = el('linearGradient', { id: 'wood', x1: '0', y1: '0', x2: '0', y2: '1' });
+    // Rosewood fretboard gradient
+    const wood = el('linearGradient', { id: 'fb-wood', x1: '0', y1: '0', x2: '0', y2: '1' });
     [
-      [0, '#4a3728'], [0.3, '#3d2e1f'], [0.5, '#352818'],
-      [0.7, '#3a2c1c'], [1, '#2e2214'],
+      [0, '#3a2518'], [0.15, '#2e1d12'], [0.35, '#2a1910'],
+      [0.5, '#2d1c12'], [0.65, '#281710'], [0.85, '#2e1d12'], [1, '#3a2518'],
     ].forEach(([o, c]) => {
-      const s = el('stop', { offset: o, 'stop-color': c });
-      wood.appendChild(s);
+      wood.appendChild(el('stop', { offset: o, 'stop-color': c }));
     });
     defs.appendChild(wood);
 
-    // Fret wire gradient (metallic)
-    const fretG = el('linearGradient', { id: 'fretMetal', x1: '0', y1: '0', x2: '1', y2: '0' });
+    // Fret wire metallic gradient
+    const fretG = el('linearGradient', { id: 'fb-fretMetal', x1: '0', y1: '0', x2: '1', y2: '0' });
     [
-      [0, '#999'], [0.3, '#ddd'], [0.5, '#fff'], [0.7, '#ddd'], [1, '#999'],
+      [0, '#888'], [0.2, '#bbb'], [0.45, '#e8e8e8'],
+      [0.55, '#fff'], [0.8, '#ccc'], [1, '#888'],
     ].forEach(([o, c]) => {
-      const s = el('stop', { offset: o, 'stop-color': c });
-      fretG.appendChild(s);
+      fretG.appendChild(el('stop', { offset: o, 'stop-color': c }));
     });
     defs.appendChild(fretG);
 
-    // Glow filter for highlights
-    const glow = el('filter', { id: 'glow', x: '-50%', y: '-50%', width: '200%', height: '200%' });
+    // Glow filter
+    const glow = el('filter', { id: 'fb-glow', x: '-50%', y: '-50%', width: '200%', height: '200%' });
     const blur = el('feGaussianBlur', { stdDeviation: '3', result: 'blur' });
     const merge = el('feMerge');
-    const m1 = el('feMergeNode', { in: 'blur' });
-    const m2 = el('feMergeNode', { in: 'SourceGraphic' });
-    merge.appendChild(m1);
-    merge.appendChild(m2);
+    merge.appendChild(el('feMergeNode', { in: 'blur' }));
+    merge.appendChild(el('feMergeNode', { in: 'SourceGraphic' }));
     glow.appendChild(blur);
     glow.appendChild(merge);
     defs.appendChild(glow);
@@ -120,107 +140,162 @@ export class Fretboard {
     svg.appendChild(defs);
   }
 
-  /* ── fretboard body ── */
+  /* ── Fretboard body ── */
   _board(svg) {
-    // Main board
+    const x = this.pad.l;
+    const y = this.pad.t;
+    const w = this.boardW + this.nutW;
+    const h = this.boardH;
+
+    // Main rosewood board
     svg.appendChild(el('rect', {
-      x: this.pad.l, y: this.pad.t,
-      width: this.boardW + this.nutW, height: this.boardH,
-      rx: 3, fill: 'url(#wood)',
+      x, y, width: w, height: h,
+      rx: 2, fill: 'url(#fb-wood)',
     }));
-    // Subtle wood grain lines
-    for (let i = 0; i < 15; i++) {
-      const y = this.pad.t + Math.random() * this.boardH;
+
+    // Wood grain — subtle horizontal lines
+    for (let i = 0; i < 20; i++) {
+      const gy = y + 4 + Math.random() * (h - 8);
+      const opacity = 0.03 + Math.random() * 0.06;
       svg.appendChild(el('line', {
-        x1: this.pad.l, y1: y,
-        x2: this.pad.l + this.boardW + this.nutW, y2: y + (Math.random() - 0.5) * 8,
-        stroke: 'rgba(0,0,0,0.08)', 'stroke-width': 0.5 + Math.random(),
+        x1: x, y1: gy,
+        x2: x + w, y2: gy + (Math.random() - 0.5) * 4,
+        stroke: '#000', 'stroke-width': 0.3 + Math.random() * 0.8,
+        opacity,
       }));
     }
+
+    // Slight edge shadow at top and bottom
+    svg.appendChild(el('rect', {
+      x, y, width: w, height: 3,
+      fill: 'rgba(0,0,0,0.15)',
+    }));
+    svg.appendChild(el('rect', {
+      x, y: y + h - 3, width: w, height: 3,
+      fill: 'rgba(0,0,0,0.15)',
+    }));
   }
 
-  /* ── nut (bone white bar at fret 0) ── */
+  /* ── Nut (bone/ivory bar at fret 0) ── */
   _nut(svg) {
+    const x = this.pad.l;
+    const y = this.pad.t;
+    const h = this.boardH;
+
+    // Main nut
     svg.appendChild(el('rect', {
-      x: this.pad.l, y: this.pad.t,
-      width: this.nutW, height: this.boardH,
-      fill: '#e8dcc8', rx: 1,
+      x, y, width: this.nutW, height: h,
+      fill: '#e8dcc4', rx: 1,
     }));
-    // Shadow
+    // Nut highlight (left edge glint)
     svg.appendChild(el('rect', {
-      x: this.pad.l + this.nutW, y: this.pad.t,
-      width: 2, height: this.boardH,
-      fill: 'rgba(0,0,0,0.3)',
+      x, y, width: 1.5, height: h,
+      fill: 'rgba(255,255,255,0.3)',
+    }));
+    // Shadow right of nut
+    svg.appendChild(el('rect', {
+      x: x + this.nutW, y, width: 3, height: h,
+      fill: 'rgba(0,0,0,0.25)',
     }));
   }
 
-  /* ── fret wires ── */
+  /* ── Fret wires ── */
   _frets(svg) {
     for (let f = 1; f <= this.numFrets; f++) {
       const x = this.pad.l + this.nutW + this.fretX[f];
+      // Fret crown width: slightly narrower toward body (realistic)
+      const w = 2.5;
       svg.appendChild(el('rect', {
-        x: x - 1.5, y: this.pad.t - 1,
-        width: 3, height: this.boardH + 2,
-        fill: 'url(#fretMetal)', rx: 0.5,
+        x: x - w / 2, y: this.pad.t - 1,
+        width: w, height: this.boardH + 2,
+        fill: 'url(#fb-fretMetal)', rx: 0.5,
       }));
     }
   }
 
-  /* ── inlay dots (no numbers, like a real guitar) ── */
+  /* ── Inlay dots — ONLY dots, no numbers ── */
   _inlays(svg) {
-    const singleDots = [3, 5, 7, 9];
-    const doubleDot = 12;
-    const cy = this.pad.t + this.boardH / 2;
+    const singles = [3, 5, 7, 9, 15, 17, 19, 21];
+    const doubles = [12, 24];
+    const midY = this.pad.t + this.boardH / 2;
+    const dotR = 4;
+    const dotColor = '#c8b898';
+    const dotOpacity = 0.55;
 
-    singleDots.forEach(f => {
+    singles.forEach(f => {
       if (f > this.numFrets) return;
       const cx = this._fretCenterX(f);
       svg.appendChild(el('circle', {
-        cx, cy, r: 5,
-        fill: '#c8b89a', opacity: 0.6,
+        cx, cy: midY, r: dotR,
+        fill: dotColor, opacity: dotOpacity,
       }));
     });
 
-    if (this.numFrets >= doubleDot) {
-      const cx = this._fretCenterX(doubleDot);
-      const off = this.boardH * 0.22;
-      svg.appendChild(el('circle', { cx, cy: cy - off, r: 4.5, fill: '#c8b89a', opacity: 0.6 }));
-      svg.appendChild(el('circle', { cx, cy: cy + off, r: 4.5, fill: '#c8b89a', opacity: 0.6 }));
-    }
+    doubles.forEach(f => {
+      if (f > this.numFrets) return;
+      const cx = this._fretCenterX(f);
+      const offset = this.boardH * 0.24;
+      svg.appendChild(el('circle', {
+        cx, cy: midY - offset, r: dotR,
+        fill: dotColor, opacity: dotOpacity,
+      }));
+      svg.appendChild(el('circle', {
+        cx, cy: midY + offset, r: dotR,
+        fill: dotColor, opacity: dotOpacity,
+      }));
+    });
   }
 
   _fretCenterX(fret) {
-    const left = this.pad.l + this.nutW + (fret > 1 ? this.fretX[fret - 1] : 0);
-    const right = this.pad.l + this.nutW + this.fretX[fret];
+    const nutEnd = this.pad.l + this.nutW;
+    const left = nutEnd + (fret > 1 ? this.fretX[fret - 1] : 0);
+    const right = nutEnd + this.fretX[fret];
     return (left + right) / 2;
   }
 
-  /* ── strings (varying thickness) ── */
+  /* ── Strings — realistic gauge differences ── */
   _strings(svg) {
-    const widths = [2.8, 2.2, 1.7, 1.2, 0.9, 0.7]; // string 6→1
-    const colors = [
-      '#a08860', '#b09870', '#c0a878', '#c8b080', '#d0b888', '#d8c090',
-    ];
+    // Real string gauges (relative): .046 .036 .026 .017 .013 .010
+    // Mapped to visual widths
+    const gauges = [3.2, 2.5, 1.8, 1.1, 0.85, 0.65];
+    // Wound strings (0-2) are brass/bronze, plain (3-5) are steel
+    const woundColor = '#a09070';
+    const plainColor = '#c8c0b0';
 
     for (let s = 0; s < 6; s++) {
-      const y = this.posY(s);
+      const y = this.stringY[s];
+      const isWound = s < 3;
+      const color = isWound ? woundColor : plainColor;
+      const w = gauges[s];
+
       // String shadow
       svg.appendChild(el('line', {
         x1: this.pad.l, y1: y + 1,
-        x2: this.pad.l + this.boardW + this.nutW, y2: y + 1,
-        stroke: 'rgba(0,0,0,0.3)', 'stroke-width': widths[s] + 1,
+        x2: this.pad.l + this.nutW + this.boardW, y2: y + 1,
+        stroke: 'rgba(0,0,0,0.35)', 'stroke-width': w + 0.5,
       }));
-      // String
+
+      // Main string
       svg.appendChild(el('line', {
         x1: this.pad.l, y1: y,
-        x2: this.pad.l + this.boardW + this.nutW, y2: y,
-        stroke: colors[s], 'stroke-width': widths[s],
+        x2: this.pad.l + this.nutW + this.boardW, y2: y,
+        stroke: color, 'stroke-width': w,
         class: `string string-${s}`,
       }));
+
+      // Wound string texture (subtle dashes for wound strings)
+      if (isWound && w > 1.5) {
+        svg.appendChild(el('line', {
+          x1: this.pad.l + this.nutW, y1: y - w * 0.15,
+          x2: this.pad.l + this.nutW + this.boardW, y2: y - w * 0.15,
+          stroke: 'rgba(255,255,255,0.08)', 'stroke-width': w * 0.3,
+          'stroke-dasharray': '1 2',
+        }));
+      }
     }
   }
 
-  /* ── invisible interactive hit areas ── */
+  /* ── Invisible interactive hit areas ── */
   _hitAreas(svg) {
     const g = el('g', { class: 'hit-areas' });
 
@@ -228,7 +303,8 @@ export class Fretboard {
       for (let f = 0; f <= this.numFrets; f++) {
         const cx = this.posX(f);
         const cy = this.posY(s);
-        const hitR = Math.min(this.strSpacing * 0.45, 20);
+        // Hit target size — large enough for finger taps
+        const hitR = Math.min((this.boardH / 5) * 0.44, 16);
 
         const circle = el('circle', {
           cx, cy, r: hitR,
@@ -253,20 +329,18 @@ export class Fretboard {
     svg.appendChild(g);
   }
 
-  /* ── Public: show a highlight circle at a position ── */
+  /* ── Highlight circle at a position ── */
   highlight(stringIdx, fret, color = '#00d4aa', pulse = false) {
     const cx = this.posX(fret);
     const cy = this.posY(stringIdx);
-
     const g = el('g', { class: `hl-dot${pulse ? ' pulse' : ''}` });
-    // Glow background
+
     g.appendChild(el('circle', {
-      cx, cy, r: 14,
-      fill: color, opacity: 0.3, filter: 'url(#glow)',
+      cx, cy, r: 12,
+      fill: color, opacity: 0.25, filter: 'url(#fb-glow)',
     }));
-    // Solid dot
     g.appendChild(el('circle', {
-      cx, cy, r: 10,
+      cx, cy, r: 9,
       fill: color, opacity: 0.9,
     }));
 
@@ -275,25 +349,25 @@ export class Fretboard {
     return g;
   }
 
-  /* ── highlight with note name label ── */
+  /* ── Highlight with label ── */
   highlightWithLabel(stringIdx, fret, label, color = '#00d4aa', pulse = false) {
     const cx = this.posX(fret);
     const cy = this.posY(stringIdx);
-
     const g = el('g', { class: `hl-dot${pulse ? ' pulse' : ''}` });
+
     g.appendChild(el('circle', {
-      cx, cy, r: 14,
-      fill: color, opacity: 0.25, filter: 'url(#glow)',
+      cx, cy, r: 12,
+      fill: color, opacity: 0.2, filter: 'url(#fb-glow)',
     }));
     g.appendChild(el('circle', {
-      cx, cy, r: 11,
+      cx, cy, r: 10,
       fill: color, opacity: 0.9,
     }));
 
     const txt = el('text', {
       x: cx, y: cy + 1,
       fill: '#fff',
-      'font-size': '10',
+      'font-size': '9',
       'font-family': 'JetBrains Mono, monospace',
       'font-weight': '700',
       'text-anchor': 'middle',
@@ -308,7 +382,6 @@ export class Fretboard {
     return g;
   }
 
-  /* ── show correct feedback at position ── */
   showCorrect(stringIdx, fret) {
     const dot = this.highlightWithLabel(stringIdx, fret, '✓', '#00e676');
     dot.classList.add('pop-in');
@@ -316,7 +389,6 @@ export class Fretboard {
     setTimeout(() => dot.remove(), 700);
   }
 
-  /* ── show wrong feedback at position ── */
   showWrong(stringIdx, fret) {
     const dot = this.highlightWithLabel(stringIdx, fret, '✗', '#ff5252');
     dot.classList.add('shake');
@@ -324,7 +396,6 @@ export class Fretboard {
     setTimeout(() => dot.remove(), 800);
   }
 
-  /* ── show all correct positions for a note ── */
   showAllPositions(noteName, minFret = 0, maxFret = 12) {
     const positions = [];
     for (let s = 0; s < 6; s++) {
@@ -340,13 +411,11 @@ export class Fretboard {
     return positions;
   }
 
-  /* ── clear all highlights ── */
   clearHighlights() {
     this._highlights.forEach(h => h.remove());
     this._highlights = [];
   }
 
-  /* ── disable/enable interaction ── */
   setInteractive(enabled) {
     const areas = this.svg.querySelectorAll('.hit-area');
     areas.forEach(a => {
