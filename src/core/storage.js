@@ -107,6 +107,52 @@ export function getRecords() {
   return getData().records;
 }
 
+/** Find the weakest fretboard positions (lowest accuracy with enough data) */
+export function getWeakPositions(minFret = 0, maxFret = 12, count = 20) {
+  const heatmap = getHeatmapData();
+  const positions = [];
+  for (let s = 0; s < 6; s++) {
+    for (let f = minFret; f <= maxFret; f++) {
+      const cell = heatmap[s][f];
+      const accuracy = cell.total > 0 ? cell.correct / cell.total : 0.5;
+      positions.push({ string: s, fret: f, accuracy, total: cell.total });
+    }
+  }
+  // Sort: lowest accuracy first, then by most attempts (prioritize real weaknesses)
+  positions.sort((a, b) => {
+    if (a.total === 0 && b.total === 0) return Math.random() - 0.5;
+    if (a.total === 0) return 1;
+    if (b.total === 0) return -1;
+    return a.accuracy - b.accuracy;
+  });
+  return positions.slice(0, count);
+}
+
+/** Get daily challenge seed from date */
+export function getDailySeed() {
+  const d = new Date();
+  return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+}
+
+/** Check if daily challenge was completed today */
+export function getDailyStatus() {
+  const data = getData();
+  const seed = getDailySeed();
+  return {
+    seed,
+    completed: data.dailyCompleted === seed,
+    score: data.dailyCompleted === seed ? data.dailyScore : null,
+  };
+}
+
+/** Record daily challenge completion */
+export function recordDaily(score) {
+  const data = getData();
+  data.dailyCompleted = getDailySeed();
+  data.dailyScore = score;
+  save(data);
+}
+
 /* ─── Achievement System ────────────────────────────────────── */
 
 export const ACHIEVEMENTS = [

@@ -107,6 +107,24 @@ function renderHome() {
           </div>
           <div class="mode-arrow">→</div>
         </button>
+
+        <button class="mode-card" data-mode="weak-practice">
+          <div class="mode-icon">💡</div>
+          <div class="mode-info">
+            <h3>Weak Spots</h3>
+            <p>Practice your weakest positions based on heatmap data</p>
+          </div>
+          <div class="mode-arrow">→</div>
+        </button>
+
+        <button class="mode-card daily-card" data-mode="daily-challenge" id="dailyCard">
+          <div class="mode-icon">📅</div>
+          <div class="mode-info">
+            <h3>Daily Challenge</h3>
+            <p>10 fixed questions per day — beat yesterday!</p>
+          </div>
+          <div class="mode-arrow">→</div>
+        </button>
       </div>
 
       <div class="tool-cards">
@@ -190,7 +208,7 @@ function startGame(mode) {
   gameState = {
     mode,
     questionIdx: 0,
-    totalQuestions: mode === 'speed-run' ? 20 : settings.questionCount,
+    totalQuestions: mode === 'speed-run' ? 20 : mode === 'daily-challenge' ? 10 : settings.questionCount,
     correct: 0,
     wrong: 0,
     startTime: Date.now(),
@@ -206,6 +224,8 @@ function startGame(mode) {
     'ear-training': 'Ear Training',
     'interval-training': 'Interval Training',
     'speed-run': 'Speed Run',
+    'weak-practice': 'Weak Spots',
+    'daily-challenge': 'Daily Challenge',
   };
 
   app.innerHTML = `
@@ -266,6 +286,10 @@ function nextQuestion() {
       setupEarTraining(); break;
     case 'interval-training':
       setupIntervalTraining(); break;
+    case 'weak-practice':
+      setupWeakPractice(); break;
+    case 'daily-challenge':
+      setupDailyChallenge(); break;
   }
 }
 
@@ -428,6 +452,72 @@ function handleIntervalAnswer(isCorrect, btnEl, correctInterval) {
   setTimeout(nextQuestion, isCorrect ? 600 : 1500);
 }
 
+/* ── Weak Practice: focus on lowest accuracy positions ── */
+function setupWeakPractice() {
+  if (!gameState.weakQueue) {
+    gameState.weakQueue = store.getWeakPositions(
+      gameState.minFret, gameState.maxFret, gameState.totalQuestions
+    );
+  }
+  const idx = gameState.questionIdx - 1;
+  const wp = gameState.weakQueue[idx % gameState.weakQueue.length];
+  const note = getNoteAt(wp.string, wp.fret);
+  gameState.currentQuestion = { noteName: note.name };
+
+  const pctText = wp.total > 0 ? `(${Math.round(wp.accuracy * 100)}% acc)` : '(untested)';
+  $('#gamePrompt').innerHTML = `
+    <div class="prompt-find">
+      <span class="prompt-label">Find</span>
+      <span class="prompt-note">${note.name}</span>
+      <span class="prompt-hint">${pctText}</span>
+    </div>
+  `;
+  $('#gameChoices').innerHTML = '';
+
+  fretboard.onFretClick = (s, f) => {
+    if (gameState.answered) return;
+    const clicked = getNoteAt(s, f);
+    const isCorrect = clicked.name === note.name &&
+      f >= gameState.minFret && f <= gameState.maxFret;
+    handleAnswer(isCorrect, s, f, note.name);
+  };
+}
+
+/* ── Daily Challenge: deterministic 10 questions per day ── */
+function setupDailyChallenge() {
+  if (!gameState.dailyRng) {
+    const seed = store.getDailySeed();
+    // Simple seeded PRNG (mulberry32)
+    let state = seed;
+    gameState.dailyRng = () => {
+      state |= 0; state = state + 0x6D2B79F5 | 0;
+      let t = Math.imul(state ^ state >>> 15, 1 | state);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  const rng = gameState.dailyRng;
+  const noteName = NOTES[Math.floor(rng() * NOTES.length)];
+  gameState.currentQuestion = { noteName };
+
+  $('#gamePrompt').innerHTML = `
+    <div class="prompt-find">
+      <span class="prompt-label">Find</span>
+      <span class="prompt-note">${noteName}</span>
+      <span class="prompt-hint">📅 Daily</span>
+    </div>
+  `;
+  $('#gameChoices').innerHTML = '';
+
+  fretboard.onFretClick = (s, f) => {
+    if (gameState.answered) return;
+    const clicked = getNoteAt(s, f);
+    const isCorrect = clicked.name === noteName &&
+      f >= gameState.minFret && f <= gameState.maxFret;
+    handleAnswer(isCorrect, s, f, noteName);
+  };
+}
+
 function handleAnswer(isCorrect, stringIdx, fret, correctNoteName) {
   gameState.answered = true;
   fretboard.setInteractive(false);
@@ -482,6 +572,10 @@ function endGame() {
   const { isNewBestTime, isNewBestScore, newBadges } = store.recordSession(
     gameState.mode, gameState.correct, gameState.totalQuestions, totalTime
   );
+
+  if (gameState.mode === 'daily-challenge') {
+    store.recordDaily(gameState.correct);
+  }
 
   showScreen('results', {
     mode: gameState.mode,
@@ -581,7 +675,7 @@ function renderStats() {
   heatmapHtml += '</div></div>';
 
   const modeLabel = (m) => {
-    const labels = { 'find-note': '🎯 Find', 'name-note': '🏷️ Name', 'ear-training': '👂 Ear', 'interval-training': '🎵 Interval', 'speed-run': '⚡ Speed' };
+    const labels = { 'find-note': '🎯 Find', 'name-note': '🏷️ Name', 'ear-training': '👂 Ear', 'interval-training': '🎵 Interval', 'speed-run': '⚡ Speed', 'weak-practice': '💡 Weak', 'daily-challenge': '📅 Daily' };
     return labels[m] || m;
   };
 

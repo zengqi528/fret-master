@@ -1100,6 +1100,20 @@ body {
 .choice-btn.correct .iv-name { color: var(--correct); }
 .choice-btn.wrong .iv-name { color: var(--wrong); }
 
+/* ─── Prompt Hint (weak spots / daily badge) ───────────────── */
+.prompt-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 400;
+  padding: 4px 10px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 12px;
+}
+
+.daily-card {
+  border-left: 3px solid var(--gold);
+}
+
 /* ─── CHORD EXPLORER ───────────────────────────────────────── */
 .chord-screen {
   padding: 20px;
