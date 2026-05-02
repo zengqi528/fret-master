@@ -1,7 +1,9 @@
 // ─── Web Audio Engine ──────────────────────────────────────────
 // Karplus-Strong string synthesis + UI sound effects
+// iOS-compatible audio unlock
 
 let audioCtx = null;
+let audioUnlocked = false;
 
 function getCtx() {
   if (!audioCtx) {
@@ -10,6 +12,45 @@ function getCtx() {
   if (audioCtx.state === 'suspended') audioCtx.resume();
   return audioCtx;
 }
+
+/**
+ * iOS Audio Unlock — must be called from a user gesture (touch/click)
+ * Plays a tiny silent buffer to permanently unlock the AudioContext
+ */
+function _doUnlock() {
+  if (audioUnlocked) return;
+  const ctx = getCtx();
+
+  // Create a tiny silent buffer and play it — this is the iOS unlock trick
+  const buf = ctx.createBuffer(1, 1, ctx.sampleRate);
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  src.connect(ctx.destination);
+  src.start(0);
+  src.stop(ctx.currentTime + 0.001);
+
+  // Also resume in case it's still suspended
+  if (ctx.state === 'suspended') {
+    ctx.resume();
+  }
+
+  audioUnlocked = true;
+}
+
+// Auto-unlock on FIRST user interaction (touch or click)
+// These listeners remove themselves after first fire
+function _setupAutoUnlock() {
+  const handler = () => {
+    _doUnlock();
+    document.removeEventListener('touchstart', handler, true);
+    document.removeEventListener('touchend', handler, true);
+    document.removeEventListener('click', handler, true);
+  };
+  document.addEventListener('touchstart', handler, { capture: true, passive: true });
+  document.addEventListener('touchend', handler, { capture: true, passive: true });
+  document.addEventListener('click', handler, { capture: true });
+}
+_setupAutoUnlock();
 
 /**
  * Play a realistic plucked-string note using Karplus-Strong synthesis
@@ -103,7 +144,7 @@ export function playWrong() {
   osc.stop(now + 0.25);
 }
 
-/** Unlock audio context on first user interaction */
+/** Unlock audio context on first user interaction (legacy API, still works) */
 export function unlockAudio() {
-  getCtx();
+  _doUnlock();
 }

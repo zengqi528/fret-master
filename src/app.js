@@ -202,6 +202,15 @@ function saveCurrentSettings() {
 }
 
 /* ──────────────────── GAME SCREEN ──────────────────── */
+function isLandscape() {
+  return window.matchMedia('(orientation: landscape)').matches
+    && window.innerHeight < 500;
+}
+
+function getFretboardHeight() {
+  return isLandscape() ? 280 : 200;
+}
+
 function startGame(mode) {
   const settings = store.getSettings();
 
@@ -233,11 +242,10 @@ function startGame(mode) {
       <div class="game-top-bar">
         <button class="back-btn" id="gameBack">✕</button>
         <div class="game-mode-label">${modeLabels[mode]}</div>
+        <div class="game-prompt" id="gamePrompt"></div>
         <div class="game-counter" id="gameCounter">1 / ${gameState.totalQuestions}</div>
         <div class="game-timer" id="gameTimer">0.0s</div>
       </div>
-
-      <div class="game-prompt" id="gamePrompt"></div>
 
       <div class="fretboard-wrap" id="fretboardWrap"></div>
 
@@ -247,7 +255,11 @@ function startGame(mode) {
 
   fretboard = new Fretboard($('#fretboardWrap', app), {
     numFrets: Math.max(gameState.maxFret, 12),
+    height: getFretboardHeight(),
   });
+
+  // Zoom fretboard to the selected practice range
+  fretboard.setViewRange(gameState.minFret, gameState.maxFret);
 
   gameState.timerInterval = setInterval(updateTimer, 100);
 
@@ -777,7 +789,7 @@ function renderScaleExplorer() {
     </div>
   `;
 
-  fretboard = new Fretboard($('#scaleFretboard', app), { numFrets: 12 });
+  fretboard = new Fretboard($('#scaleFretboard', app), { numFrets: 12, height: getFretboardHeight() });
 
   // Click on fretboard plays the note
   fretboard.onFretClick = (s, f) => {
@@ -869,7 +881,7 @@ function renderChordExplorer() {
     </div>
   `;
 
-  fretboard = new Fretboard($('#chordFretboard', app), { numFrets: 12 });
+  fretboard = new Fretboard($('#chordFretboard', app), { numFrets: 12, height: getFretboardHeight() });
   fretboard.setInteractive(false);
 
   $$('.chord-btn', app).forEach(btn => {

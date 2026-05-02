@@ -4,14 +4,16 @@
   "description": "Master the guitar fretboard through interactive training games",
   "start_url": "/",
   "display": "standalone",
-  "orientation": "any",
-  "background_color": "#0f0f1a",
+  "orientation": "landscape-primary",
+  "background_color": "#08080f",
   "theme_color": "#0f0f1a",
+  "categories": ["education", "music"],
   "icons": [
     {
       "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎸</text></svg>",
       "sizes": "any",
-      "type": "image/svg+xml"
+      "type": "image/svg+xml",
+      "purpose": "any"
     }
   ]
 }

@@ -17,9 +17,11 @@ export class Fretboard {
     this.numFrets = opts.numFrets || 12;
 
     // Layout — wider aspect ratio like a real fretboard
+    // Height is configurable: taller = more string spacing (better for touch)
     this.W = 1400;
-    this.H = 200;
-    this.pad = { l: 10, r: 16, t: 18, b: 18 };
+    this.H = opts.height || 200;
+    const vPad = Math.round(this.H * 0.09);
+    this.pad = { l: 10, r: 16, t: vPad, b: vPad };
     this.nutW = 8;
 
     this.boardW = this.W - this.pad.l - this.pad.r - this.nutW;
@@ -96,6 +98,10 @@ export class Fretboard {
     this._inlays(svg);
     this._strings(svg);
     this._hitAreas(svg);
+
+    // Dim mask layer — used by setViewRange to fade out-of-range zones
+    this.dimGroup = el('g', { class: 'dim-layer' });
+    svg.appendChild(this.dimGroup);
 
     this.hlGroup = el('g', { class: 'hl-layer' });
     svg.appendChild(this.hlGroup);
@@ -327,6 +333,65 @@ export class Fretboard {
       }
     }
     svg.appendChild(g);
+  }
+
+  /* ── Focus viewBox on a fret range ── */
+  setViewRange(minFret, maxFret) {
+    // Clear previous dim masks
+    this.dimGroup.innerHTML = '';
+
+    const nutEnd = this.pad.l + this.nutW;
+    const fullRange = (minFret === 0 && maxFret >= this.numFrets);
+
+    if (fullRange) {
+      // Reset to full view
+      this.svg.setAttribute('viewBox', `0 0 ${this.W} ${this.H}`);
+      return;
+    }
+
+    // Calculate X boundaries for the visible range
+    let xLeft;
+    if (minFret === 0) {
+      xLeft = 0;
+    } else {
+      xLeft = nutEnd + (this.fretX[minFret - 1] || 0) - 8;
+    }
+
+    let xRight;
+    if (maxFret >= this.numFrets) {
+      xRight = this.W;
+    } else {
+      xRight = nutEnd + this.fretX[maxFret] + 8;
+    }
+
+    // Add padding
+    xLeft = Math.max(0, xLeft - 4);
+    xRight = Math.min(this.W, xRight + 4);
+
+    const vbW = xRight - xLeft;
+    this.svg.setAttribute('viewBox', `${xLeft} 0 ${vbW} ${this.H}`);
+
+    // Dim mask: darken areas outside the range
+    if (minFret > 0) {
+      const dimRight = nutEnd + (this.fretX[minFret - 1] || 0);
+      this.dimGroup.appendChild(el('rect', {
+        x: 0, y: 0, width: dimRight, height: this.H,
+        fill: 'rgba(0, 0, 0, 0.55)',
+        class: 'range-dim',
+        'pointer-events': 'none',
+      }));
+    }
+
+    if (maxFret < this.numFrets) {
+      const dimLeft = nutEnd + this.fretX[maxFret];
+      this.dimGroup.appendChild(el('rect', {
+        x: dimLeft, y: 0,
+        width: this.W - dimLeft, height: this.H,
+        fill: 'rgba(0, 0, 0, 0.55)',
+        class: 'range-dim',
+        'pointer-events': 'none',
+      }));
+    }
   }
 
   /* ── Highlight circle at a position ── */

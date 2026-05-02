@@ -8,5 +8,13 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+// Rotation prompt dismiss
+const dismissBtn = document.getElementById('dismissRotate');
+if (dismissBtn) {
+  dismissBtn.addEventListener('click', () => {
+    document.getElementById('rotatePrompt').classList.add('dismissed');
+  });
+}
+
 // Boot
 init();
