@@ -253,8 +253,10 @@ function startGame(mode) {
     </div>
   `;
 
+  // Always render extra frets beyond maxFret so zoom/dim masks work correctly
+  const renderFrets = Math.min(Math.max(gameState.maxFret + 3, 15), 24);
   fretboard = new Fretboard($('#fretboardWrap', app), {
-    numFrets: Math.max(gameState.maxFret, 12),
+    numFrets: renderFrets,
     height: getFretboardHeight(),
   });
 
