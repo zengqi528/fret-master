@@ -11,6 +11,7 @@ const STRINGS = {
     string: 'String',
     questions: 'Questions',
     intervals: 'Intervals',
+    accidentals: 'Accidentals',
     all: 'All',
     progress: '📊 Progress',
 
@@ -78,6 +79,7 @@ const STRINGS = {
     string: '弦',
     questions: '题数',
     intervals: '音程方向',
+    accidentals: '半音音名',
     all: '全部',
     progress: '📊 进度',
 

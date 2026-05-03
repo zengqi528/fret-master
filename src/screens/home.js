@@ -170,7 +170,13 @@ export function render(ctx) {
             `).join('')}
           </div>
         </div>
-      </div>
+        <div class="setting-row">
+          <label>${t('accidentals')}</label>
+          <div class="accidental-btns" id="accidentalBtns">
+            <button class="sf-btn ${(settings.accidentalPref || 'sharp') === 'sharp' ? 'active' : ''}" data-acc="sharp">♯ C# D#</button>
+            <button class="sf-btn ${(settings.accidentalPref || 'sharp') === 'flat' ? 'active' : ''}" data-acc="flat">♭ D♭ E♭</button>
+          </div>
+        </div>      </div>
 
       <div class="metronome-bar" id="metronomeBar">
         <button class="metro-toggle" id="metroToggle">${t('metronome')}</button>
@@ -216,6 +222,14 @@ export function render(ctx) {
   $$('.interval-dir-btns .sf-btn', app).forEach(btn => {
     btn.addEventListener('click', () => {
       $$('.interval-dir-btns .sf-btn', app).forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+
+  // Accidental toggle (♯/♭)
+  $$('#accidentalBtns .sf-btn', app).forEach(btn => {
+    btn.addEventListener('click', () => {
+      $$('#accidentalBtns .sf-btn', app).forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
     });
   });
@@ -291,5 +305,7 @@ export function saveCurrentSettings(ctx) {
     : null;
   const activeDirBtn = $('.interval-dir-btns .sf-btn.active', app);
   const intervalDirection = activeDirBtn ? activeDirBtn.dataset.dir : 'ascending';
-  store.saveSettings({ minFret, maxFret, questionCount, practiceString, intervalDirection });
+  const activeAccBtn = $('#accidentalBtns .sf-btn.active', app);
+  const accidentalPref = activeAccBtn ? activeAccBtn.dataset.acc : 'sharp';
+  store.saveSettings({ minFret, maxFret, questionCount, practiceString, intervalDirection, accidentalPref });
 }

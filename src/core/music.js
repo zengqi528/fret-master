@@ -2,6 +2,49 @@
 // Standard guitar tuning, note data, frequency calculation
 
 export const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+export const NOTES_FLAT = ['C', 'D♭', 'D', 'E♭', 'E', 'F', 'G♭', 'G', 'A♭', 'A', 'B♭', 'B'];
+
+/**
+ * Theory-correct note spellings per key.
+ * In music theory, each major key has a canonical set of 7 note names.
+ * This avoids incorrect spellings like "A#" in Bb major (should be "Bb").
+ */
+export const KEY_NOTE_NAMES = {
+  'C':  ['C', 'D♭', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'A♭', 'A', 'B♭', 'B'],
+  'G':  ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'A♭', 'A', 'B♭', 'B'],
+  'D':  ['C', 'C#', 'D', 'E♭', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'],
+  'A':  ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'B♭', 'B'],
+  'E':  ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'],
+  'B':  ['C', 'C#', 'D', 'D#', 'E', 'E#', 'F#', 'G', 'G#', 'A', 'A#', 'B'],
+  'F#': ['C', 'C#', 'D', 'D#', 'E#', 'E#', 'F#', 'G', 'G#', 'A', 'A#', 'B'],
+  'F':  ['C', 'D♭', 'D', 'E♭', 'E', 'F', 'G♭', 'G', 'A♭', 'A', 'B♭', 'B'],
+  'B♭': ['C', 'D♭', 'D', 'E♭', 'E', 'F', 'G♭', 'G', 'A♭', 'A', 'B♭', 'B'],
+  'Bb': ['C', 'D♭', 'D', 'E♭', 'E', 'F', 'G♭', 'G', 'A♭', 'A', 'B♭', 'B'],
+  'E♭': ['C', 'D♭', 'D', 'E♭', 'E', 'F', 'G♭', 'G', 'A♭', 'A', 'B♭', 'B'],
+  'Eb': ['C', 'D♭', 'D', 'E♭', 'E', 'F', 'G♭', 'G', 'A♭', 'A', 'B♭', 'B'],
+  'A♭': ['C', 'D♭', 'D', 'E♭', 'E', 'F', 'G♭', 'G', 'A♭', 'A', 'B♭', 'B'],
+  'Ab': ['C', 'D♭', 'D', 'E♭', 'E', 'F', 'G♭', 'G', 'A♭', 'A', 'B♭', 'B'],
+  'D♭': ['C', 'D♭', 'D', 'E♭', 'E', 'F', 'G♭', 'G', 'A♭', 'A', 'B♭', 'B'],
+  'Db': ['C', 'D♭', 'D', 'E♭', 'E', 'F', 'G♭', 'G', 'A♭', 'A', 'B♭', 'B'],
+  'C#': ['C', 'C#', 'D', 'D#', 'E', 'E#', 'F#', 'G', 'G#', 'A', 'A#', 'B'],
+  'G#': ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'],
+  'D#': ['C', 'D♭', 'D', 'E♭', 'E', 'F', 'G♭', 'G', 'A♭', 'A', 'B♭', 'B'],
+  'A#': ['C', 'D♭', 'D', 'E♭', 'E', 'F', 'G♭', 'G', 'A♭', 'A', 'B♭', 'B'],
+};
+
+/**
+ * Resolve a note name based on context.
+ * @param {number} noteIdx - 0-11 chromatic index
+ * @param {'sharp'|'flat'} pref - user preference for non-theory contexts
+ * @param {string} [keyContext] - if provided, use theory-correct spelling for this key
+ * @returns {string} display name like 'C#' or 'D♭'
+ */
+export function resolveNoteName(noteIdx, pref = 'sharp', keyContext = null) {
+  if (keyContext && KEY_NOTE_NAMES[keyContext]) {
+    return KEY_NOTE_NAMES[keyContext][noteIdx];
+  }
+  return pref === 'flat' ? NOTES_FLAT[noteIdx] : NOTES[noteIdx];
+}
 
 // Standard tuning: string index 0 = 6th string (low E), index 5 = 1st string (high E)
 export const STANDARD_TUNING = [
@@ -17,12 +60,17 @@ export const STANDARD_TUNING = [
  * Get the note at a specific string/fret position
  * @param {number} stringIdx - 0-5 (0=low E, 5=high E)
  * @param {number} fret - 0-24
+ * @param {'sharp'|'flat'} [pref] - accidental preference
  */
-export function getNoteAt(stringIdx, fret) {
+export function getNoteAt(stringIdx, fret, pref = 'sharp') {
   const open = STANDARD_TUNING[stringIdx];
   const midi = open.midi + fret;
+  const idx = midi % 12;
   return {
-    name: NOTES[midi % 12],
+    name: pref === 'flat' ? NOTES_FLAT[idx] : NOTES[idx],
+    sharpName: NOTES[idx],  // always available for internal matching
+    flatName: NOTES_FLAT[idx],
+    noteIdx: idx,
     octave: Math.floor(midi / 12) - 1,
     midi,
     string: stringIdx,
@@ -36,17 +84,23 @@ export function midiToFreq(midi) {
 }
 
 /**
- * Find all fretboard positions for a given note name
- * @param {string} noteName - e.g. 'A', 'C#'
+ * Find all fretboard positions for a given note name (enharmonic-safe)
+ * @param {string} noteName - e.g. 'A', 'C#', 'D♭'
  * @param {number} minFret
  * @param {number} maxFret
+ * @param {'sharp'|'flat'} pref
  */
-export function findNotePositions(noteName, minFret = 0, maxFret = 12) {
+export function findNotePositions(noteName, minFret = 0, maxFret = 12, pref = 'sharp') {
+  // Resolve input name to chromatic index (accept both sharp and flat names)
+  let targetIdx = NOTES.indexOf(noteName);
+  if (targetIdx < 0) targetIdx = NOTES_FLAT.indexOf(noteName);
+  if (targetIdx < 0) return [];
+
   const positions = [];
   for (let s = 0; s < 6; s++) {
     for (let f = minFret; f <= maxFret; f++) {
-      const note = getNoteAt(s, f);
-      if (note.name === noteName) {
+      const note = getNoteAt(s, f, pref);
+      if (note.noteIdx === targetIdx) {
         positions.push(note);
       }
     }
@@ -55,10 +109,10 @@ export function findNotePositions(noteName, minFret = 0, maxFret = 12) {
 }
 
 /** Get a random note within the given fret range */
-export function getRandomPosition(minFret = 0, maxFret = 12) {
+export function getRandomPosition(minFret = 0, maxFret = 12, pref = 'sharp') {
   const s = Math.floor(Math.random() * 6);
   const f = minFret + Math.floor(Math.random() * (maxFret - minFret + 1));
-  return getNoteAt(s, f);
+  return getNoteAt(s, f, pref);
 }
 
 /**
@@ -66,21 +120,27 @@ export function getRandomPosition(minFret = 0, maxFret = 12) {
  * @param {number} minFret
  * @param {number} maxFret
  * @param {number|null} stringFilter - 0-5 to limit to one string, null = any string
+ * @param {'sharp'|'flat'} pref
  */
-export function getRandomPositionFiltered(minFret = 0, maxFret = 12, stringFilter = null) {
+export function getRandomPositionFiltered(minFret = 0, maxFret = 12, stringFilter = null, pref = 'sharp') {
   const s = stringFilter !== null ? stringFilter : Math.floor(Math.random() * 6);
   const f = minFret + Math.floor(Math.random() * (maxFret - minFret + 1));
-  return getNoteAt(s, f);
+  return getNoteAt(s, f, pref);
 }
 
 /** Get a random note name from the 12 chromatic notes */
-export function getRandomNoteName() {
-  return NOTES[Math.floor(Math.random() * 12)];
+export function getRandomNoteName(pref = 'sharp') {
+  const arr = pref === 'flat' ? NOTES_FLAT : NOTES;
+  return arr[Math.floor(Math.random() * 12)];
 }
 
-/** Generate N wrong note names (excluding the correct one) */
-export function getWrongNotes(correctName, count = 3) {
-  const pool = NOTES.filter(n => n !== correctName);
+/** Generate N wrong note names (excluding the correct one, enharmonic-safe) */
+export function getWrongNotes(correctName, count = 3, pref = 'sharp') {
+  const arr = pref === 'flat' ? NOTES_FLAT : NOTES;
+  // Find the index of the correct note
+  let correctIdx = NOTES.indexOf(correctName);
+  if (correctIdx < 0) correctIdx = NOTES_FLAT.indexOf(correctName);
+  const pool = arr.filter((_, i) => i !== correctIdx);
   const shuffled = pool.sort(() => Math.random() - 0.5);
   return shuffled.slice(0, count);
 }

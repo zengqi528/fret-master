@@ -21,6 +21,7 @@ function getDefault() {
       maxFret: 12,
       questionCount: 20,
       practiceString: null,
+      accidentalPref: 'sharp', // 'sharp' = C# D# etc, 'flat' = D♭ E♭ etc
       lang: 'en',
     },
     records: {

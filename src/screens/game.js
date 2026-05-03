@@ -4,7 +4,8 @@
 import { Fretboard } from '../core/fretboard.js';
 import {
   getNoteAt, getRandomPosition, getRandomPositionFiltered, getRandomNoteName,
-  getWrongNotes, findNotePositions, midiToFreq, NOTES, INTERVALS, CHORDS, STANDARD_TUNING,
+  getWrongNotes, findNotePositions, midiToFreq, resolveNoteName,
+  NOTES, NOTES_FLAT, INTERVALS, CHORDS, STANDARD_TUNING,
 } from '../core/music.js';
 import { playNote, playCorrect, playWrong } from '../core/audio.js';
 import * as metronome from '../core/metronome.js';
@@ -40,6 +41,7 @@ export function render(ctx, mode) {
     maxFret: settings.maxFret,
     practiceString: settings.practiceString,
     intervalDirection: settings.intervalDirection || 'ascending',
+    pref: settings.accidentalPref || 'sharp',
     currentQuestion: null,
     answered: false,
   };
@@ -128,12 +130,13 @@ function nextQuestion() {
 /* ── Find Note ── */
 function setupFindNote() {
   const { $, $$ } = _ctx;
+  const pref = gameState.pref;
   let noteName;
   if (gameState.practiceString !== null) {
-    const pos = getRandomPositionFiltered(gameState.minFret, gameState.maxFret, gameState.practiceString);
+    const pos = getRandomPositionFiltered(gameState.minFret, gameState.maxFret, gameState.practiceString, pref);
     noteName = pos.name;
   } else {
-    noteName = getRandomNoteName();
+    noteName = getRandomNoteName(pref);
   }
   gameState.currentQuestion = { noteName };
 
@@ -148,11 +151,15 @@ function setupFindNote() {
   `;
   $('#gameChoices').innerHTML = '';
 
+  // Resolve target noteIdx for enharmonic-safe matching
+  let targetIdx = NOTES.indexOf(noteName);
+  if (targetIdx < 0) targetIdx = NOTES_FLAT.indexOf(noteName);
+
   fretboard.onFretClick = (s, f) => {
     if (gameState.answered) return;
-    const note = getNoteAt(s, f);
+    const note = getNoteAt(s, f, pref);
     const stringOk = gameState.practiceString !== null ? s === gameState.practiceString : true;
-    const isCorrect = note.name === noteName &&
+    const isCorrect = note.noteIdx === targetIdx &&
       f >= gameState.minFret && f <= gameState.maxFret && stringOk;
     handleAnswer(isCorrect, s, f, noteName);
   };
@@ -161,8 +168,9 @@ function setupFindNote() {
 /* ── Name Note ── */
 function setupNameNote() {
   const { $, $$ } = _ctx;
-  const pos = getRandomPositionFiltered(gameState.minFret, gameState.maxFret, gameState.practiceString);
-  const wrongNotes = getWrongNotes(pos.name, 3);
+  const pref = gameState.pref;
+  const pos = getRandomPositionFiltered(gameState.minFret, gameState.maxFret, gameState.practiceString, pref);
+  const wrongNotes = getWrongNotes(pos.name, 3, pref);
   const choices = [pos.name, ...wrongNotes].sort(() => Math.random() - 0.5);
   gameState.currentQuestion = { position: pos, correctName: pos.name };
 
@@ -194,7 +202,8 @@ function setupNameNote() {
 /* ── Ear Training ── */
 function setupEarTraining() {
   const { $, $$ } = _ctx;
-  const pos = getRandomPositionFiltered(gameState.minFret, gameState.maxFret, gameState.practiceString);
+  const pref = gameState.pref;
+  const pos = getRandomPositionFiltered(gameState.minFret, gameState.maxFret, gameState.practiceString, pref);
   gameState.currentQuestion = { position: pos, noteName: pos.name };
 
   fretboard.onFretClick = null;
@@ -219,9 +228,9 @@ function setupEarTraining() {
     fretboard.setInteractive(true);
     fretboard.onFretClick = (s, f) => {
       if (gameState.answered) return;
-      const note = getNoteAt(s, f);
+      const note = getNoteAt(s, f, pref);
       const stringOk = gameState.practiceString !== null ? s === gameState.practiceString : true;
-      const isCorrect = note.name === pos.name &&
+      const isCorrect = note.noteIdx === pos.noteIdx &&
         f >= gameState.minFret && f <= gameState.maxFret && stringOk;
       handleAnswer(isCorrect, s, f, pos.name);
     };
@@ -288,6 +297,7 @@ function setupIntervalTraining() {
 /* ── Weak Practice ── */
 function setupWeakPractice() {
   const { $ } = _ctx;
+  const pref = gameState.pref;
   if (!gameState.weakQueue) {
     gameState.weakQueue = store.getWeakPositions(
       gameState.minFret, gameState.maxFret, gameState.totalQuestions
@@ -295,7 +305,7 @@ function setupWeakPractice() {
   }
   const idx = gameState.questionIdx - 1;
   const wp = gameState.weakQueue[idx % gameState.weakQueue.length];
-  const note = getNoteAt(wp.string, wp.fret);
+  const note = getNoteAt(wp.string, wp.fret, pref);
   gameState.currentQuestion = { noteName: note.name };
 
   const pctText = wp.total > 0 ? `(${Math.round(wp.accuracy * 100)}% acc)` : '(untested)';
@@ -310,8 +320,8 @@ function setupWeakPractice() {
 
   fretboard.onFretClick = (s, f) => {
     if (gameState.answered) return;
-    const clicked = getNoteAt(s, f);
-    const isCorrect = clicked.name === note.name &&
+    const clicked = getNoteAt(s, f, pref);
+    const isCorrect = clicked.noteIdx === note.noteIdx &&
       f >= gameState.minFret && f <= gameState.maxFret;
     handleAnswer(isCorrect, s, f, note.name);
   };
@@ -320,6 +330,7 @@ function setupWeakPractice() {
 /* ── Daily Challenge ── */
 function setupDailyChallenge() {
   const { $ } = _ctx;
+  const pref = gameState.pref;
   if (!gameState.dailyRng) {
     const seed = store.getDailySeed();
     let state = seed;
@@ -331,8 +342,12 @@ function setupDailyChallenge() {
     };
   }
   const rng = gameState.dailyRng;
-  const noteName = NOTES[Math.floor(rng() * NOTES.length)];
+  const noteArr = pref === 'flat' ? NOTES_FLAT : NOTES;
+  const noteName = noteArr[Math.floor(rng() * noteArr.length)];
   gameState.currentQuestion = { noteName };
+
+  let targetIdx = NOTES.indexOf(noteName);
+  if (targetIdx < 0) targetIdx = NOTES_FLAT.indexOf(noteName);
 
   $('#gamePrompt').innerHTML = `
     <div class="prompt-find">
@@ -345,8 +360,8 @@ function setupDailyChallenge() {
 
   fretboard.onFretClick = (s, f) => {
     if (gameState.answered) return;
-    const clicked = getNoteAt(s, f);
-    const isCorrect = clicked.name === noteName &&
+    const clicked = getNoteAt(s, f, pref);
+    const isCorrect = clicked.noteIdx === targetIdx &&
       f >= gameState.minFret && f <= gameState.maxFret;
     handleAnswer(isCorrect, s, f, noteName);
   };

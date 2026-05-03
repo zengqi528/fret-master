@@ -1,7 +1,7 @@
 // ─── Circle of Fifths Screen ──────────────────────────────────
 // Interactive SVG circle of fifths with key info and scale linkage
 
-import { CIRCLE_OF_FIFTHS, NOTES, SCALES } from '../core/music.js';
+import { CIRCLE_OF_FIFTHS, NOTES, SCALES, resolveNoteName } from '../core/music.js';
 import { midiToFreq } from '../core/music.js';
 import { playNote } from '../core/audio.js';
 import { t } from '../core/i18n.js';
@@ -42,11 +42,10 @@ export function render(ctx) {
     const scale = SCALES['Major'];
     let delay = 0;
     scale.forEach(semi => {
-      const midi = 60 + rootIdx + semi; // Middle C octave
+      const midi = 60 + rootIdx + semi;
       setTimeout(() => playNote(midiToFreq(midi), 0.2), delay);
       delay += 200;
     });
-    // Octave
     setTimeout(() => playNote(midiToFreq(60 + rootIdx + 12), 0.3), delay);
   });
 
@@ -60,14 +59,12 @@ export function render(ctx) {
 
     let html = '';
 
-    // Draw segments
     CIRCLE_OF_FIFTHS.forEach((key, i) => {
       const startAngle = (i - 0.5) * 30 - 90;
       const endAngle = (i + 0.5) * 30 - 90;
       const startRad = startAngle * Math.PI / 180;
       const endRad = endAngle * Math.PI / 180;
 
-      // Outer arc (major keys)
       const x1o = cx + rOuter * Math.cos(startRad);
       const y1o = cy + rOuter * Math.sin(startRad);
       const x2o = cx + rOuter * Math.cos(endRad);
@@ -81,12 +78,10 @@ export function render(ctx) {
       const fillColor = isSelected ? 'var(--accent)' : 'var(--bg-surface)';
       const textColor = isSelected ? '#fff' : 'var(--text-primary)';
 
-      // Outer segment path
       html += `<path class="cof-segment" data-idx="${i}"
         d="M${x1i},${y1i} L${x1o},${y1o} A${rOuter},${rOuter} 0 0,1 ${x2o},${y2o} L${x2i},${y2i} A${rInner},${rInner} 0 0,0 ${x1i},${y1i}"
         fill="${fillColor}" stroke="var(--border)" stroke-width="1" style="cursor:pointer"/>`;
 
-      // Major key label
       const angle = i * 30 - 90;
       const rad = angle * Math.PI / 180;
       const tx = cx + rText * Math.cos(rad);
@@ -94,7 +89,6 @@ export function render(ctx) {
       html += `<text x="${tx}" y="${ty}" fill="${textColor}" text-anchor="middle" dominant-baseline="central"
         font-size="16" font-weight="700" style="pointer-events:none">${key.major}</text>`;
 
-      // Inner segment (minor keys)
       const rInner2 = 55;
       const x1i2 = cx + rInner2 * Math.cos(startRad);
       const y1i2 = cy + rInner2 * Math.sin(startRad);
@@ -106,27 +100,23 @@ export function render(ctx) {
         d="M${x1i2},${y1i2} L${x1i},${y1i} A${rInner},${rInner} 0 0,1 ${x2i},${y2i} L${x2i2},${y2i2} A${rInner2},${rInner2} 0 0,0 ${x1i2},${y1i2}"
         fill="${minorFill}" stroke="var(--border)" stroke-width="0.5" style="cursor:pointer"/>`;
 
-      // Minor key label
       const mx = cx + rMinor * Math.cos(rad);
       const my = cy + rMinor * Math.sin(rad);
       html += `<text x="${mx}" y="${my}" fill="var(--text-muted)" text-anchor="middle" dominant-baseline="central"
         font-size="11" style="pointer-events:none">${key.minor}</text>`;
     });
 
-    // Center circle
     html += `<circle cx="${cx}" cy="${cy}" r="50" fill="var(--bg-card)" stroke="var(--border)" stroke-width="1"/>`;
     html += `<text x="${cx}" y="${cy - 8}" fill="var(--text-primary)" text-anchor="middle" font-size="13" font-weight="600">Circle of</text>`;
     html += `<text x="${cx}" y="${cy + 12}" fill="var(--accent)" text-anchor="middle" font-size="14" font-weight="700">Fifths</text>`;
 
     svg.innerHTML = html;
 
-    // Click handlers
     svg.querySelectorAll('.cof-segment').forEach(seg => {
       seg.addEventListener('click', () => {
         selectedIdx = parseInt(seg.dataset.idx);
         drawCircle(svg);
         updateInfo();
-        // Play the root note
         const rootMidi = 60 + NOTES.indexOf(CIRCLE_OF_FIFTHS[selectedIdx].note);
         playNote(midiToFreq(rootMidi), 0.15);
       });
@@ -136,7 +126,8 @@ export function render(ctx) {
   function updateInfo() {
     const key = CIRCLE_OF_FIFTHS[selectedIdx];
     const rootIdx = NOTES.indexOf(key.note);
-    const scaleNotes = SCALES['Major'].map(s => NOTES[(rootIdx + s) % 12]);
+    // Use theory-correct note names per key context
+    const scaleNotes = SCALES['Major'].map(s => resolveNoteName((rootIdx + s) % 12, 'sharp', key.major));
     const infoEl = $('#cofInfo', app);
     if (!infoEl) return;
 
