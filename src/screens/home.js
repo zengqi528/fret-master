@@ -5,6 +5,7 @@ import { STANDARD_TUNING } from '../core/music.js';
 import { unlockAudio } from '../core/audio.js';
 import * as metronome from '../core/metronome.js';
 import * as store from '../core/storage.js';
+import { t, setLang, getLang } from '../core/i18n.js';
 
 export function render(ctx) {
   metronome.stop();
@@ -15,15 +16,22 @@ export function render(ctx) {
   const unlockedCount = achievements.filter(a => a.unlocked).length;
   const calendar = store.getPracticeHistory(7);
 
+  // Sync i18n with saved preference
+  if (settings.lang) setLang(settings.lang);
+  const lang = getLang();
+
   app.innerHTML = `
     <div class="screen home-screen">
       <header class="home-header">
-        <div class="logo">
-          <span class="logo-icon">🎸</span>
-          <h1>Fret Master</h1>
+        <div class="logo-row">
+          <div class="logo">
+            <span class="logo-icon">🎸</span>
+            <h1>Fret Master</h1>
+          </div>
+          <button class="lang-toggle" id="langToggle">${lang === 'en' ? '中文' : 'EN'}</button>
         </div>
-        <p class="tagline">Master the fretboard, one note at a time</p>
-        ${streak.best > 0 ? `<div class="streak-badge">🔥 Best streak: ${streak.best}</div>` : ''}
+        <p class="tagline">${t('tagline')}</p>
+        ${streak.best > 0 ? `<div class="streak-badge">${t('bestStreak')}: ${streak.best}</div>` : ''}
         <div class="practice-calendar">
           ${calendar.map(d => `<div class="cal-day ${d.practiced ? 'practiced' : ''}"><span class="cal-label">${d.dayName}</span><span class="cal-dot">${d.practiced ? '●' : '○'}</span></div>`).join('')}
         </div>
@@ -33,8 +41,8 @@ export function render(ctx) {
         <button class="mode-card" data-mode="find-note">
           <div class="mode-icon">🎯</div>
           <div class="mode-info">
-            <h3>Find Note</h3>
-            <p>See a note name, tap its position on the fretboard</p>
+            <h3>${t('findNote')}</h3>
+            <p>${t('findNoteDesc')}</p>
           </div>
           <div class="mode-arrow">→</div>
         </button>
@@ -42,8 +50,8 @@ export function render(ctx) {
         <button class="mode-card" data-mode="name-note">
           <div class="mode-icon">🏷️</div>
           <div class="mode-info">
-            <h3>Name Note</h3>
-            <p>See a highlighted position, choose the correct note name</p>
+            <h3>${t('nameNote')}</h3>
+            <p>${t('nameNoteDesc')}</p>
           </div>
           <div class="mode-arrow">→</div>
         </button>
@@ -51,8 +59,8 @@ export function render(ctx) {
         <button class="mode-card" data-mode="ear-training">
           <div class="mode-icon">👂</div>
           <div class="mode-info">
-            <h3>Ear Training</h3>
-            <p>Hear a note played, find it on the fretboard by ear</p>
+            <h3>${t('earTraining')}</h3>
+            <p>${t('earTrainingDesc')}</p>
           </div>
           <div class="mode-arrow">→</div>
         </button>
@@ -60,8 +68,17 @@ export function render(ctx) {
         <button class="mode-card" data-mode="interval-training">
           <div class="mode-icon">🎵</div>
           <div class="mode-info">
-            <h3>Interval Training</h3>
-            <p>Hear two notes, identify the interval between them</p>
+            <h3>${t('intervalTraining')}</h3>
+            <p>${t('intervalTrainingDesc')}</p>
+          </div>
+          <div class="mode-arrow">→</div>
+        </button>
+
+        <button class="mode-card" data-mode="chord-quiz">
+          <div class="mode-icon">🎸</div>
+          <div class="mode-info">
+            <h3>${t('chordQuiz')}</h3>
+            <p>${t('chordQuizDesc')}</p>
           </div>
           <div class="mode-arrow">→</div>
         </button>
@@ -69,8 +86,8 @@ export function render(ctx) {
         <button class="mode-card" data-mode="speed-run">
           <div class="mode-icon">⚡</div>
           <div class="mode-info">
-            <h3>Speed Run</h3>
-            <p>Find 20 notes as fast as possible — race the clock!</p>
+            <h3>${t('speedRun')}</h3>
+            <p>${t('speedRunDesc')}</p>
           </div>
           <div class="mode-arrow">→</div>
         </button>
@@ -78,8 +95,8 @@ export function render(ctx) {
         <button class="mode-card" data-mode="weak-practice">
           <div class="mode-icon">💡</div>
           <div class="mode-info">
-            <h3>Weak Spots</h3>
-            <p>Practice your weakest positions based on heatmap data</p>
+            <h3>${t('weakSpots')}</h3>
+            <p>${t('weakSpotsDesc')}</p>
           </div>
           <div class="mode-arrow">→</div>
         </button>
@@ -87,8 +104,8 @@ export function render(ctx) {
         <button class="mode-card daily-card" data-mode="daily-challenge" id="dailyCard">
           <div class="mode-icon">📅</div>
           <div class="mode-info">
-            <h3>Daily Challenge</h3>
-            <p>10 fixed questions per day — beat yesterday!</p>
+            <h3>${t('dailyChallenge')}</h3>
+            <p>${t('dailyChallengeDesc')}</p>
           </div>
           <div class="mode-arrow">→</div>
         </button>
@@ -97,18 +114,18 @@ export function render(ctx) {
       <div class="tool-cards">
         <button class="tool-card" id="scaleExplorerBtn">
           <span class="tool-icon">🎼</span>
-          <span>Scale Explorer</span>
+          <span>${t('scaleExplorer')}</span>
         </button>
         <button class="tool-card" id="chordExplorerBtn">
           <span class="tool-icon">🎶</span>
-          <span>Chord Library</span>
+          <span>${t('chordLibrary')}</span>
         </button>
       </div>
 
       <div class="settings-panel">
-        <h4>Settings</h4>
+        <h4>${t('settings')}</h4>
         <div class="setting-row">
-          <label>Fret Range</label>
+          <label>${t('fretRange')}</label>
           <div class="fret-range">
             <input type="number" id="minFret" value="${settings.minFret}" min="0" max="24" />
             <span>—</span>
@@ -116,9 +133,9 @@ export function render(ctx) {
           </div>
         </div>
         <div class="setting-row">
-          <label>String</label>
+          <label>${t('string')}</label>
           <div class="string-filter-btns" id="stringFilterBtns">
-            <button class="sf-btn ${settings.practiceString === null ? 'active' : ''}" data-string="all">All</button>
+            <button class="sf-btn ${settings.practiceString === null ? 'active' : ''}" data-string="all">${t('all')}</button>
             ${[0,1,2,3,4,5].map(s => {
               const label = STANDARD_TUNING[s].string + '弦';
               return `<button class="sf-btn ${settings.practiceString === s ? 'active' : ''}" data-string="${s}">${label}</button>`;
@@ -126,7 +143,7 @@ export function render(ctx) {
           </div>
         </div>
         <div class="setting-row">
-          <label>Questions</label>
+          <label>${t('questions')}</label>
           <div class="question-btns">
             ${[10, 20, 40].map(n => `
               <button class="q-btn ${settings.questionCount === n ? 'active' : ''}" data-count="${n}">${n}</button>
@@ -134,7 +151,7 @@ export function render(ctx) {
           </div>
         </div>
         <div class="setting-row">
-          <label>Intervals</label>
+          <label>${t('intervals')}</label>
           <div class="interval-dir-btns">
             ${[
               { val: 'ascending', label: '↑ Up' },
@@ -148,7 +165,7 @@ export function render(ctx) {
       </div>
 
       <div class="metronome-bar" id="metronomeBar">
-        <button class="metro-toggle" id="metroToggle">🎵 Metronome</button>
+        <button class="metro-toggle" id="metroToggle">${t('metronome')}</button>
         <div class="metro-controls" id="metroControls" style="display:none">
           <button class="metro-play" id="metroPlay">▶</button>
           <input type="range" id="metroBpm" min="40" max="240" value="${settings.metronomeBpm || 80}" />
@@ -159,7 +176,7 @@ export function render(ctx) {
       </div>
 
       <div class="home-footer-links">
-        <button class="stats-link" id="statsBtn">📊 Progress</button>
+        <button class="stats-link" id="statsBtn">${t('progress')}</button>
         <button class="stats-link" id="achieveBtn">🏆 ${unlockedCount}/${achievements.length}</button>
       </div>
     </div>
@@ -193,6 +210,14 @@ export function render(ctx) {
       $$('.interval-dir-btns .sf-btn', app).forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
     });
+  });
+
+  // Language toggle
+  $('#langToggle', app).addEventListener('click', () => {
+    const newLang = getLang() === 'en' ? 'zh' : 'en';
+    setLang(newLang);
+    store.saveSettings({ lang: newLang });
+    render(ctx); // Re-render immediately
   });
 
   $('#statsBtn', app).addEventListener('click', () => showScreen('stats'));

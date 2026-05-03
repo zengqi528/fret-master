@@ -134,6 +134,50 @@ body {
   font-weight: 600;
 }
 
+/* ─── Logo Row + Language Toggle ───────────────────────────── */
+.logo-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.lang-toggle {
+  padding: 4px 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.lang-toggle:hover {
+  color: var(--accent);
+  border-color: var(--accent-glow);
+}
+
+/* ─── Chord Quiz Choice Buttons ────────────────────────────── */
+.chord-choice {
+  flex-direction: column;
+  gap: 2px;
+}
+
+.chord-choice-name {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.chord-choice-cat {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
 /* ─── Mode Cards ───────────────────────────────────────────── */
 .mode-cards {
   display: flex;

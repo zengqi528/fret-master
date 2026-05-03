@@ -20,7 +20,8 @@ function getDefault() {
       minFret: 0,
       maxFret: 12,
       questionCount: 20,
-      practiceString: null,  // null = all strings, 0-5 = specific string
+      practiceString: null,
+      lang: 'en',
     },
     records: {
       // { mode: { bestTime, bestScore, totalPlayed, totalCorrect } }
@@ -29,6 +30,7 @@ function getDefault() {
       'speed-run': { bestTime: null, bestScore: 0, totalPlayed: 0, totalCorrect: 0 },
       'ear-training': { bestTime: null, bestScore: 0, totalPlayed: 0, totalCorrect: 0 },
       'interval-training': { bestTime: null, bestScore: 0, totalPlayed: 0, totalCorrect: 0 },
+      'chord-quiz': { bestTime: null, bestScore: 0, totalPlayed: 0, totalCorrect: 0 },
     },
     achievements: [], // array of unlocked achievement IDs
     // Accuracy heatmap: heatmap[stringIdx][fret] = { correct, total }

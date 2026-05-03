@@ -2,6 +2,7 @@
 // Progress tracking, heatmap, achievements, data management
 
 import * as store from '../core/storage.js';
+import { t, modeLabels as getModeLabels } from '../core/i18n.js';
 
 export function render(ctx) {
   const { app, $, formatTime, showScreen } = ctx;
@@ -32,31 +33,28 @@ export function render(ctx) {
   for (let f = 0; f <= 12; f++) heatmapHtml += `<div class="hm-cell hm-num">${f}</div>`;
   heatmapHtml += '</div></div>';
 
-  const modeLabel = (m) => {
-    const labels = { 'find-note': '🎯 Find', 'name-note': '🏷️ Name', 'ear-training': '👂 Ear', 'interval-training': '🎵 Interval', 'speed-run': '⚡ Speed', 'weak-practice': '💡 Weak', 'daily-challenge': '📅 Daily' };
-    return labels[m] || m;
-  };
+  const labels = getModeLabels();
 
   app.innerHTML = `
     <div class="screen stats-screen">
       <div class="stats-header">
         <button class="back-btn" id="statsBack">←</button>
-        <h2>Progress</h2>
+        <h2>${t('progress')}</h2>
       </div>
 
       <div class="stats-overview">
         <div class="stat-card">
           <div class="stat-val">${streak.best}</div>
-          <div class="stat-label">🔥 Best Streak</div>
+          <div class="stat-label">${t('bestStreakLabel')}</div>
         </div>
         <div class="stat-card">
           <div class="stat-val">${store.getData().totalSessions}</div>
-          <div class="stat-label">🎮 Sessions</div>
+          <div class="stat-label">${t('sessions')}</div>
         </div>
       </div>
 
       <div class="stats-section">
-        <h3>Achievements</h3>
+        <h3>${t('achievements')}</h3>
         <div class="achievements-grid">
           ${achievements.map(a => `
             <div class="achievement ${a.unlocked ? 'unlocked' : 'locked'}" title="${a.desc}">
@@ -68,11 +66,11 @@ export function render(ctx) {
       </div>
 
       <div class="stats-section">
-        <h3>Game Records</h3>
+        <h3>${t('gameRecords')}</h3>
         <div class="records-list">
           ${Object.entries(records).map(([mode, r]) => `
             <div class="record-row">
-              <span class="record-mode">${modeLabel(mode)}</span>
+              <span class="record-mode">${labels[mode] || mode}</span>
               <span class="record-stat">Best: ${r.bestTime ? formatTime(r.bestTime) : '—'}</span>
               <span class="record-stat">Acc: ${r.totalPlayed > 0 ? Math.round(r.totalCorrect / r.totalPlayed * 100) + '%' : '—'}</span>
             </div>
@@ -81,7 +79,7 @@ export function render(ctx) {
       </div>
 
       <div class="stats-section">
-        <h3>Fretboard Heatmap</h3>
+        <h3>${t('heatmap')}</h3>
         <p class="heatmap-legend">
           <span class="legend-item"><span class="legend-dot" style="background:#ff5252"></span>&lt;50%</span>
           <span class="legend-item"><span class="legend-dot" style="background:#ffa726"></span>50-70%</span>
@@ -92,10 +90,10 @@ export function render(ctx) {
       </div>
 
       <div class="stats-section">
-        <h3>Data Management</h3>
+        <h3>${t('dataManagement')}</h3>
         <div class="data-actions">
-          <button class="btn-secondary btn-sm" id="exportBtn">📤 Export Data</button>
-          <button class="btn-secondary btn-sm" id="importBtn">📥 Import Data</button>
+          <button class="btn-secondary btn-sm" id="exportBtn">${t('exportData')}</button>
+          <button class="btn-secondary btn-sm" id="importBtn">${t('importData')}</button>
           <input type="file" id="importFile" accept=".json" style="display:none" />
         </div>
       </div>
@@ -104,7 +102,6 @@ export function render(ctx) {
 
   $('#statsBack', app).addEventListener('click', () => showScreen('home'));
 
-  // Data export/import
   $('#exportBtn', app).addEventListener('click', () => store.exportData());
   $('#importBtn', app).addEventListener('click', () => $('#importFile', app).click());
   $('#importFile', app).addEventListener('change', (e) => {
@@ -114,10 +111,10 @@ export function render(ctx) {
     reader.onload = () => {
       const result = store.importData(reader.result);
       if (result.ok) {
-        alert('Data imported successfully! Refreshing...');
+        alert(t('importSuccess'));
         showScreen('stats');
       } else {
-        alert('Import failed: ' + result.error);
+        alert(t('importFail') + ': ' + result.error);
       }
     };
     reader.readAsText(file);

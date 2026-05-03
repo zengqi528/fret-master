@@ -8,6 +8,8 @@ import * as resultsScreen from './screens/results.js';
 import * as statsScreen from './screens/stats.js';
 import * as scalesScreen from './screens/scales.js';
 import * as chordsScreen from './screens/chords.js';
+import { setLang } from './core/i18n.js';
+import * as store from './core/storage.js';
 
 /* ──────────────────── Shared State ──────────────────── */
 const app = document.getElementById('app');
@@ -23,7 +25,6 @@ function formatTime(ms) {
 }
 
 /* ──────────────────── Context Object ──────────────────── */
-// Injected into every screen's render() so screens don't import app.js
 const ctx = {
   app,
   $,
@@ -50,5 +51,10 @@ function showScreen(name, data = {}) {
 
 /* ──────────────────── Bootstrap ──────────────────── */
 export function init() {
+  // Restore language preference
+  const settings = store.getSettings();
+  if (settings.lang) setLang(settings.lang);
+
   showScreen('home');
 }
+

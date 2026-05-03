@@ -2,6 +2,7 @@
 // Post-game score display with grade, stats, badges
 
 import * as store from '../core/storage.js';
+import { t } from '../core/i18n.js';
 
 export function render(ctx, data) {
   const { app, $, formatTime, showScreen } = ctx;
@@ -24,32 +25,32 @@ export function render(ctx, data) {
       <div class="results-card">
         <div class="results-emoji">${emoji}</div>
         <div class="results-grade" style="color: ${gradeColors[grade]}">${grade}</div>
-        ${data.isNewBestTime ? '<div class="new-record">🎉 New Best Time!</div>' : ''}
-        ${data.isNewBestScore ? '<div class="new-record">⭐ New Best Score!</div>' : ''}
+        ${data.isNewBestTime ? `<div class="new-record">${t('newBestTime')}</div>` : ''}
+        ${data.isNewBestScore ? `<div class="new-record">${t('newBestScore')}</div>` : ''}
 
         <div class="results-stats">
           <div class="stat">
             <div class="stat-val">${data.correct}/${data.total}</div>
-            <div class="stat-label">Correct</div>
+            <div class="stat-label">${t('correct')}</div>
           </div>
           <div class="stat">
             <div class="stat-val">${pct}%</div>
-            <div class="stat-label">Accuracy</div>
+            <div class="stat-label">${t('accuracy')}</div>
           </div>
           <div class="stat">
             <div class="stat-val">${formatTime(data.time)}</div>
-            <div class="stat-label">Time</div>
+            <div class="stat-label">${t('time')}</div>
           </div>
         </div>
 
-        <div class="results-streak">🔥 Current streak: ${store.getStreak().current}</div>
+        <div class="results-streak">${t('currentStreak')}: ${store.getStreak().current}</div>
       </div>
 
       ${badgeHtml ? `<div class="new-badges">${badgeHtml}</div>` : ''}
 
       <div class="results-actions">
-        <button class="btn-primary" id="playAgain">Play Again</button>
-        <button class="btn-secondary" id="backHome">Back to Menu</button>
+        <button class="btn-primary" id="playAgain">${t('playAgain')}</button>
+        <button class="btn-secondary" id="backHome">${t('backToMenu')}</button>
       </div>
     </div>
   `;

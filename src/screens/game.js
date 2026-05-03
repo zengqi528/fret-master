@@ -4,11 +4,12 @@
 import { Fretboard } from '../core/fretboard.js';
 import {
   getNoteAt, getRandomPosition, getRandomPositionFiltered, getRandomNoteName,
-  getWrongNotes, findNotePositions, midiToFreq, NOTES, INTERVALS, STANDARD_TUNING,
+  getWrongNotes, findNotePositions, midiToFreq, NOTES, INTERVALS, CHORDS, STANDARD_TUNING,
 } from '../core/music.js';
 import { playNote, playCorrect, playWrong } from '../core/audio.js';
 import * as metronome from '../core/metronome.js';
 import * as store from '../core/storage.js';
+import { modeLabels as getModeLabels } from '../core/i18n.js';
 
 let fretboard = null;
 let gameState = null;
@@ -43,21 +44,13 @@ export function render(ctx, mode) {
     answered: false,
   };
 
-  const modeLabels = {
-    'find-note': 'Find Note',
-    'name-note': 'Name Note',
-    'ear-training': 'Ear Training',
-    'interval-training': 'Interval Training',
-    'speed-run': 'Speed Run',
-    'weak-practice': 'Weak Spots',
-    'daily-challenge': 'Daily Challenge',
-  };
+  const labels = getModeLabels();
 
   app.innerHTML = `
     <div class="screen game-screen">
       <div class="game-top-bar">
         <button class="back-btn" id="gameBack">✕</button>
-        <div class="game-mode-label">${modeLabels[mode]}</div>
+        <div class="game-mode-label">${labels[mode] || mode}</div>
         <div class="game-prompt" id="gamePrompt"></div>
         <div class="game-counter" id="gameCounter">1 / ${gameState.totalQuestions}</div>
         <div class="game-timer" id="gameTimer">0.0s</div>
@@ -127,6 +120,8 @@ function nextQuestion() {
       setupWeakPractice(); break;
     case 'daily-challenge':
       setupDailyChallenge(); break;
+    case 'chord-quiz':
+      setupChordQuiz(); break;
   }
 }
 
@@ -426,6 +421,92 @@ function handleIntervalAnswer(isCorrect, btnEl, correctInterval) {
   }
 
   setTimeout(nextQuestion, isCorrect ? 600 : 1500);
+}
+
+/* ── Chord Quiz: hear a chord strummed, identify name ── */
+function setupChordQuiz() {
+  const { $, $$ } = _ctx;
+  const correct = CHORDS[Math.floor(Math.random() * CHORDS.length)];
+
+  // Pick 3 wrong chords from different categories or names
+  const wrongs = CHORDS.filter(c => c.name !== correct.name)
+    .sort(() => Math.random() - 0.5).slice(0, 3);
+  const choices = [correct, ...wrongs].sort(() => Math.random() - 0.5);
+  gameState.currentQuestion = { correct };
+
+  fretboard.onFretClick = null;
+  fretboard.setInteractive(false);
+
+  $('#gamePrompt').innerHTML = `
+    <div class="prompt-ear">
+      <span class="prompt-label">What chord? 🎸</span>
+      <button class="replay-btn" id="replayBtn">🔊 Play</button>
+    </div>
+  `;
+
+  $('#gameChoices').innerHTML = choices.map(c => `
+    <button class="choice-btn chord-choice" data-chord="${c.name}">
+      <span class="chord-choice-name">${c.name}</span>
+      <span class="chord-choice-cat">${c.category}</span>
+    </button>
+  `).join('');
+
+  const strumChord = () => {
+    let delay = 0;
+    for (let s = 0; s < 6; s++) {
+      if (correct.frets[s] >= 0) {
+        const note = getNoteAt(s, correct.frets[s]);
+        setTimeout(() => playNote(midiToFreq(note.midi), 0.3), delay);
+        delay += 60;
+      }
+    }
+  };
+  setTimeout(strumChord, 200);
+  $('#replayBtn', _ctx.app).addEventListener('click', strumChord);
+
+  $$('.choice-btn', _ctx.app).forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (gameState.answered) return;
+      const picked = btn.dataset.chord;
+      const isCorrect = picked === correct.name;
+      handleChordAnswer(isCorrect, btn, correct);
+    });
+  });
+}
+
+function handleChordAnswer(isCorrect, btnEl, correctChord) {
+  const { $$ } = _ctx;
+  gameState.answered = true;
+
+  $$('.choice-btn', _ctx.app).forEach(b => {
+    if (b.dataset.chord === correctChord.name) b.classList.add('correct');
+    else b.classList.add('disabled');
+  });
+
+  if (isCorrect) {
+    gameState.correct++;
+    playCorrect();
+    // Show chord on fretboard
+    correctChord.frets.forEach((f, s) => {
+      if (f >= 0) {
+        const note = getNoteAt(s, f);
+        fretboard.highlightWithLabel(s, f, note.name, '#00d4aa');
+      }
+    });
+  } else {
+    gameState.wrong++;
+    playWrong();
+    btnEl.classList.add('wrong');
+    // Show correct chord on fretboard
+    correctChord.frets.forEach((f, s) => {
+      if (f >= 0) {
+        const note = getNoteAt(s, f);
+        fretboard.highlightWithLabel(s, f, note.name, '#ffd700');
+      }
+    });
+  }
+
+  setTimeout(nextQuestion, isCorrect ? 800 : 2000);
 }
 
 function endGame() {
