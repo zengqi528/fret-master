@@ -69,6 +69,9 @@ npm run build
 
 # Preview production
 npm run preview
+
+# Deploy to Vercel (commits, pushes, and aliases the domain)
+.\deploy.ps1 "commit message"
 ```
 
 ## 📁 Project Structure

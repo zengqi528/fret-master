@@ -47,6 +47,7 @@ Key methods:
 - `showCorrect(s, f)` / `showWrong(s, f)` — animated feedback
 - `showAllPositions(noteName, minFret, maxFret)` — reveal all positions of a note
 - `clearHighlights()` — remove all overlay elements
+- `setViewRange(minFret, maxFret)` — dynamically scales SVG viewBox and dims out-of-bounds frets
 - `setInteractive(bool)` — enable/disable click hit zones
 - `onFretClick = (stringIdx, fret) => {}` — callback for fret taps
 
@@ -70,7 +71,7 @@ Exports:
 
 - `playNote(freq, duration)` — Karplus-Strong plucked string synthesis
 - `playCorrect()` / `playWrong()` — UI feedback sounds
-- `unlockAudio()` — required for iOS (must be called from user gesture)
+- `_setupAutoUnlock()` — global touch listener that plays a silent buffer to permanently unlock `AudioContext` on iOS Safari
 
 ### storage.js — Persistence Layer
 
@@ -118,11 +119,18 @@ Key functions:
 
 ## Deployment
 
+For manual deployment:
 ```bash
 git add -A
 git commit -m "feat: description"
 git push origin master
 # Vercel auto-deploys from GitHub
+```
+
+**Automated Deployment (Recommended)**:
+Use the PowerShell script to automatically commit, push, deploy to Vercel production, and set the domain alias:
+```powershell
+.\deploy.ps1 "your commit message here"
 ```
 
 Vercel config: Framework = Vite, Build = `npm run build`, Output = `dist`

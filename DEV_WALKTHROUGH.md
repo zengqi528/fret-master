@@ -80,6 +80,23 @@
    - `recordDaily()` / `getDailyStatus()` for completion tracking
    - Gold left-border on home screen card
 
+### Phase 5: Landscape UX & Pedagogical Focus
+
+**Goal**: Professional mobile usability and focused practice
+
+1. **Landscape UI Overhaul** (`style.css`)
+   - Adaptive top-bottom architecture for 900x380 viewports
+   - 4-column compact grid layout for home screen to maximize vertical space
+2. **Dynamic Fretboard Focus** (`fretboard.js`)
+   - `setViewRange(minFret, maxFret)` dynamically adjusts SVG `viewBox`
+   - Darkens out-of-bounds frets with `dim-layer` masks
+   - Enlarges the selected practice range (e.g., frets 5-9) for pedagogical clarity
+3. **iOS Audio Unlock** (`audio.js`)
+   - Global `touchstart/touchend/click` listener pattern
+   - Injects silent buffer on first user interaction to permanently unlock Safari's `AudioContext`
+4. **Deploy Automation** (`deploy.ps1`)
+   - Automated git push + Vercel production deploy + domain alias binding
+
 ## Key Design Decisions
 
 | Decision | Rationale |
