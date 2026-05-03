@@ -173,25 +173,70 @@ export function getRecords() {
   return getData().records;
 }
 
-/** Find the weakest fretboard positions (lowest accuracy with enough data) */
+/** Find the weakest fretboard positions using SRS scheduling.
+ *  Positions have: accuracy, lastSeen, interval (hours), nextReview.
+ *  Priority: overdue items → lowest accuracy → untested. */
 export function getWeakPositions(minFret = 0, maxFret = 12, count = 20) {
-  const heatmap = getHeatmapData();
+  const data = getData();
+  const heatmap = data.heatmap;
+  const srs = data.srs || {};
+  const now = Date.now();
   const positions = [];
+
   for (let s = 0; s < 6; s++) {
     for (let f = minFret; f <= maxFret; f++) {
       const cell = heatmap[s][f];
+      const key = `${s}-${f}`;
+      const sr = srs[key] || { interval: 1, nextReview: 0, ease: 2.5 };
       const accuracy = cell.total > 0 ? cell.correct / cell.total : 0.5;
-      positions.push({ string: s, fret: f, accuracy, total: cell.total });
+      const overdue = now > sr.nextReview;
+      const overdueHours = overdue ? (now - sr.nextReview) / 3600000 : 0;
+
+      positions.push({
+        string: s, fret: f, accuracy, total: cell.total,
+        overdue, overdueHours,
+        interval: sr.interval,
+        nextReview: sr.nextReview,
+      });
     }
   }
-  // Sort: lowest accuracy first, then by most attempts (prioritize real weaknesses)
+
+  // Sort: overdue first (most overdue), then lowest accuracy, then untested
   positions.sort((a, b) => {
+    // Overdue items first
+    if (a.overdue && !b.overdue) return -1;
+    if (!a.overdue && b.overdue) return 1;
+    if (a.overdue && b.overdue) return b.overdueHours - a.overdueHours;
+    // Then by accuracy (lowest first)
     if (a.total === 0 && b.total === 0) return Math.random() - 0.5;
     if (a.total === 0) return 1;
     if (b.total === 0) return -1;
     return a.accuracy - b.accuracy;
   });
+
   return positions.slice(0, count);
+}
+
+/** Update SRS data for a position after answering */
+export function recordSRS(stringIdx, fret, correct) {
+  const data = getData();
+  if (!data.srs) data.srs = {};
+  const key = `${stringIdx}-${fret}`;
+  const sr = data.srs[key] || { interval: 1, nextReview: 0, ease: 2.5 };
+
+  if (correct) {
+    // Correct: increase interval (SM-2 inspired)
+    sr.interval = Math.min(sr.interval * sr.ease, 720); // Cap at 30 days
+    sr.ease = Math.min(sr.ease + 0.1, 3.5);
+  } else {
+    // Wrong: reset interval, decrease ease
+    sr.interval = 1;
+    sr.ease = Math.max(sr.ease - 0.2, 1.3);
+  }
+
+  sr.nextReview = Date.now() + sr.interval * 3600000; // interval is in hours
+  data.srs[key] = sr;
+  save(data);
 }
 
 /** Get daily challenge seed from date */

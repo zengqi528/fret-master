@@ -120,6 +120,14 @@ export function render(ctx) {
           <span class="tool-icon">🎶</span>
           <span>${t('chordLibrary')}</span>
         </button>
+        <button class="tool-card" id="cagedBtn">
+          <span class="tool-icon">🔗</span>
+          <span>CAGED</span>
+        </button>
+        <button class="tool-card" id="circleBtn">
+          <span class="tool-icon">🔵</span>
+          <span>Circle of 5ths</span>
+        </button>
       </div>
 
       <div class="settings-panel">
@@ -229,6 +237,14 @@ export function render(ctx) {
   $('#chordExplorerBtn', app).addEventListener('click', () => {
     unlockAudio();
     showScreen('chords');
+  });
+  $('#cagedBtn', app).addEventListener('click', () => {
+    unlockAudio();
+    showScreen('caged');
+  });
+  $('#circleBtn', app).addEventListener('click', () => {
+    unlockAudio();
+    showScreen('circle');
   });
 
   // Metronome

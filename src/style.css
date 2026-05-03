@@ -1962,3 +1962,141 @@ body {
   }
 }
 
+/* ─── Circle of Fifths ─────────────────────────────────────── */
+.cof-screen {
+  gap: 16px;
+}
+
+.cof-container {
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.cof-svg {
+  width: 100%;
+  height: auto;
+}
+
+.cof-segment:hover {
+  filter: brightness(1.2);
+}
+
+.cof-info {
+  text-align: center;
+  padding: 12px;
+}
+
+.cof-key-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.cof-key-name {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.cof-key-sig {
+  font-size: 14px;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.cof-scale-notes {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.cof-note {
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: var(--bg-surface);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.cof-note.root {
+  background: var(--accent);
+  color: #fff;
+}
+
+.cof-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+/* ─── CAGED System ─────────────────────────────────────────── */
+.caged-screen {
+  gap: 16px;
+}
+
+.caged-controls {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.caged-shape-toggles {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.caged-toggle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 14px;
+  background: var(--bg-surface);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+  min-width: 56px;
+}
+
+.caged-toggle.active {
+  border-color: var(--shape-color);
+  background: color-mix(in srgb, var(--shape-color) 15%, var(--bg-surface));
+  color: var(--shape-color);
+}
+
+.caged-letter {
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.caged-label {
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+.caged-legend {
+  text-align: center;
+  padding: 8px;
+}
+
+.caged-legend-text {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.caged-hint {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}

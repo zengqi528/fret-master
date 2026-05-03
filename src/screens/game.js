@@ -357,6 +357,7 @@ function handleAnswer(isCorrect, stringIdx, fret, correctNoteName) {
   gameState.answered = true;
   fretboard.setInteractive(false);
   store.recordAnswer(stringIdx, fret, isCorrect);
+  store.recordSRS(stringIdx, fret, isCorrect);
 
   if (isCorrect) {
     gameState.correct++;
@@ -381,6 +382,7 @@ function handleNameAnswer(isCorrect, btnEl, pos) {
   const { $$ } = _ctx;
   gameState.answered = true;
   store.recordAnswer(pos.string, pos.fret, isCorrect);
+  store.recordSRS(pos.string, pos.fret, isCorrect);
 
   $$('.choice-btn', _ctx.app).forEach(b => {
     if (b.dataset.note === pos.name) b.classList.add('correct');

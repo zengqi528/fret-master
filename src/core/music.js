@@ -189,3 +189,110 @@ export const CHORDS = [
   { name: 'Dsus2', category: 'Other',  frets: [-1, -1, 0, 2, 3, 0] },
   { name: 'Asus4', category: 'Other',  frets: [-1, 0, 2, 2, 3, 0] },
 ];
+
+/* ─── CAGED System ──────────────────────────────────────────── */
+
+/**
+ * CAGED chord shapes as relative fret patterns from shape root position.
+ * Each shape = { name, rootString, frets: [6 values, -1=muted, relative to root pos] }
+ * To apply: shift all non-negative frets by the root fret offset for the target key.
+ */
+export const CAGED_SHAPES = [
+  {
+    name: 'C Shape',
+    color: '#ff6b6b',
+    // Open C: root on 5th string
+    pattern: [
+      // string: [startFret, endFret] relative to shape position
+      { string: 0, frets: [-1] },
+      { string: 1, frets: [0, 3] },
+      { string: 2, frets: [0, 2] },
+      { string: 3, frets: [0] },
+      { string: 4, frets: [0, 1] },
+      { string: 5, frets: [0] },
+    ],
+    intervals: [-1, 'R', '3', '5', 'R', '3'],
+    rootFrets: [null, 3, 2, 0, 1, 0], // frets for open C
+  },
+  {
+    name: 'A Shape',
+    color: '#ffa94d',
+    intervals: [-1, 'R', '5', 'R', '3', '5'],
+    rootFrets: [null, 0, 2, 2, 2, 0],
+  },
+  {
+    name: 'G Shape',
+    color: '#69db7c',
+    intervals: ['R', '3', '5', 'R', '3', 'R'],
+    rootFrets: [3, 2, 0, 0, 0, 3],
+  },
+  {
+    name: 'E Shape',
+    color: '#4dabf7',
+    intervals: ['R', '5', 'R', '3', '5', 'R'],
+    rootFrets: [0, 2, 2, 1, 0, 0],
+  },
+  {
+    name: 'D Shape',
+    color: '#da77f2',
+    intervals: [-1, -1, 'R', '5', 'R', '3'],
+    rootFrets: [null, null, 0, 2, 3, 2],
+  },
+];
+
+/**
+ * Get CAGED shape positions for a given root note across the neck
+ * @param {string} rootName - e.g. 'C', 'A'
+ * @param {number} maxFret - how far up the neck to show
+ * @returns {{ shape, positions: {string, fret, interval, color}[] }[]}
+ */
+export function getCAGEDPositions(rootName, maxFret = 14) {
+  const rootIdx = NOTES.indexOf(rootName);
+  const results = [];
+
+  for (const shape of CAGED_SHAPES) {
+    // Calculate the offset: how many frets to shift this shape
+    // E.g., for "A Shape" playing C: A is at index 9, C is at 0, offset = (0 - 9 + 12) % 12 = 3
+    const shapeRootNote = shape.name.charAt(0); // 'C','A','G','E','D'
+    const shapeRootIdx = NOTES.indexOf(shapeRootNote);
+    const offset = (rootIdx - shapeRootIdx + 12) % 12;
+
+    const positions = [];
+    for (let s = 0; s < 6; s++) {
+      const baseFret = shape.rootFrets[s];
+      if (baseFret === null) continue;
+      const fret = baseFret + offset;
+      if (fret >= 0 && fret <= maxFret) {
+        positions.push({
+          string: s,
+          fret,
+          interval: shape.intervals[s],
+          color: shape.color,
+          shapeName: shape.name,
+        });
+      }
+    }
+    if (positions.length >= 3) {
+      results.push({ shape, positions });
+    }
+  }
+  return results;
+}
+
+/* ─── Circle of Fifths ──────────────────────────────────────── */
+
+/** Circle of Fifths order (clockwise from C) */
+export const CIRCLE_OF_FIFTHS = [
+  { note: 'C',  major: 'C',  minor: 'Am',  sharps: 0, flats: 0 },
+  { note: 'G',  major: 'G',  minor: 'Em',  sharps: 1, flats: 0 },
+  { note: 'D',  major: 'D',  minor: 'Bm',  sharps: 2, flats: 0 },
+  { note: 'A',  major: 'A',  minor: 'F#m', sharps: 3, flats: 0 },
+  { note: 'E',  major: 'E',  minor: 'C#m', sharps: 4, flats: 0 },
+  { note: 'B',  major: 'B',  minor: 'G#m', sharps: 5, flats: 0 },
+  { note: 'F#', major: 'F#', minor: 'D#m', sharps: 6, flats: 0 },
+  { note: 'C#', major: 'Db', minor: 'Bbm', sharps: 0, flats: 5 },
+  { note: 'G#', major: 'Ab', minor: 'Fm',  sharps: 0, flats: 4 },
+  { note: 'D#', major: 'Eb', minor: 'Cm',  sharps: 0, flats: 3 },
+  { note: 'A#', major: 'Bb', minor: 'Gm',  sharps: 0, flats: 2 },
+  { note: 'F',  major: 'F',  minor: 'Dm',  sharps: 0, flats: 1 },
+];

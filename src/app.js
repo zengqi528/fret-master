@@ -8,6 +8,8 @@ import * as resultsScreen from './screens/results.js';
 import * as statsScreen from './screens/stats.js';
 import * as scalesScreen from './screens/scales.js';
 import * as chordsScreen from './screens/chords.js';
+import * as circleScreen from './screens/circle.js';
+import * as cagedScreen from './screens/caged.js';
 import { setLang } from './core/i18n.js';
 import * as store from './core/storage.js';
 
@@ -46,15 +48,14 @@ function showScreen(name, data = {}) {
     case 'stats':   statsScreen.render(ctx); break;
     case 'scales':  scalesScreen.render(ctx); break;
     case 'chords':  chordsScreen.render(ctx); break;
+    case 'circle':  circleScreen.render(ctx); break;
+    case 'caged':   cagedScreen.render(ctx); break;
   }
 }
 
 /* ──────────────────── Bootstrap ──────────────────── */
 export function init() {
-  // Restore language preference
   const settings = store.getSettings();
   if (settings.lang) setLang(settings.lang);
-
   showScreen('home');
 }
-
