@@ -394,6 +394,45 @@ export class Fretboard {
     }
   }
 
+  /**
+   * Visually highlight a single string by dimming all other strings.
+   * @param {number|null} stringIdx - 0-5 to highlight one string, null to clear
+   */
+  highlightActiveString(stringIdx) {
+    // Remove previous string highlights
+    this.svg.querySelectorAll('.string-dim').forEach(e => e.remove());
+
+    if (stringIdx === null) return;
+
+    for (let s = 0; s < 6; s++) {
+      if (s === stringIdx) continue;
+      const y = this.stringY[s];
+      const bandH = this.boardH / 6;
+      const rect = el('rect', {
+        x: 0,
+        y: y - bandH / 2,
+        width: this.W,
+        height: bandH,
+        fill: 'rgba(0, 0, 0, 0.35)',
+        class: 'string-dim',
+        'pointer-events': 'none',
+      });
+      this.dimGroup.appendChild(rect);
+    }
+
+    // Add glow line on active string
+    const ay = this.stringY[stringIdx];
+    const glow = el('line', {
+      x1: this.pad.l, y1: ay,
+      x2: this.pad.l + this.nutW + this.boardW, y2: ay,
+      stroke: 'rgba(0, 212, 170, 0.2)',
+      'stroke-width': 8,
+      class: 'string-dim',
+      'pointer-events': 'none',
+    });
+    this.dimGroup.appendChild(glow);
+  }
+
   /* ── Highlight circle at a position ── */
   highlight(stringIdx, fret, color = '#00d4aa', pulse = false) {
     const cx = this.posX(fret);

@@ -297,6 +297,38 @@ body {
   font-weight: 600;
 }
 
+/* String filter buttons */
+.string-filter-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sf-btn {
+  padding: 6px 12px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.sf-btn:hover {
+  border-color: var(--accent-glow);
+  color: var(--text-primary);
+}
+
+.sf-btn.active {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
 .stats-link {
   background: none;
   border: none;
@@ -1566,6 +1598,15 @@ body {
   .q-btn {
     padding: 4px 12px;
     font-size: 12px;
+  }
+
+  .sf-btn {
+    padding: 3px 8px;
+    font-size: 11px;
+  }
+
+  .string-filter-btns {
+    gap: 4px;
   }
 
   /* Footer links */

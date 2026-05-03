@@ -20,6 +20,7 @@ function getDefault() {
       minFret: 0,
       maxFret: 12,
       questionCount: 20,
+      practiceString: null,  // null = all strings, 0-5 = specific string
     },
     records: {
       // { mode: { bestTime, bestScore, totalPlayed, totalCorrect } }

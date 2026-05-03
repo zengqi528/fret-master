@@ -3,9 +3,9 @@
 
 import { Fretboard } from './core/fretboard.js';
 import {
-  getNoteAt, getRandomPosition, getRandomNoteName, getWrongNotes,
-  findNotePositions, midiToFreq, NOTES, SCALES, getScalePositions,
-  INTERVALS, CHORDS,
+  getNoteAt, getRandomPosition, getRandomPositionFiltered, getRandomNoteName,
+  getWrongNotes, findNotePositions, midiToFreq, NOTES, SCALES,
+  getScalePositions, INTERVALS, CHORDS, STANDARD_TUNING,
 } from './core/music.js';
 import { playNote, playCorrect, playWrong, unlockAudio } from './core/audio.js';
 import * as store from './core/storage.js';
@@ -149,6 +149,16 @@ function renderHome() {
           </div>
         </div>
         <div class="setting-row">
+          <label>String</label>
+          <div class="string-filter-btns" id="stringFilterBtns">
+            <button class="sf-btn ${settings.practiceString === null ? 'active' : ''}" data-string="all">All</button>
+            ${[0,1,2,3,4,5].map(s => {
+              const label = STANDARD_TUNING[s].string + '弦';
+              return `<button class="sf-btn ${settings.practiceString === s ? 'active' : ''}" data-string="${s}">${label}</button>`;
+            }).join('')}
+          </div>
+        </div>
+        <div class="setting-row">
           <label>Questions</label>
           <div class="question-btns">
             ${[10, 20, 40].map(n => `
@@ -181,6 +191,13 @@ function renderHome() {
     });
   });
 
+  $$('.sf-btn', app).forEach(btn => {
+    btn.addEventListener('click', () => {
+      $$('.sf-btn', app).forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+
   $('#statsBtn', app).addEventListener('click', () => showScreen('stats'));
   $('#achieveBtn', app).addEventListener('click', () => showScreen('stats'));
   $('#scaleExplorerBtn', app).addEventListener('click', () => {
@@ -198,7 +215,11 @@ function saveCurrentSettings() {
   const maxFret = parseInt($('#maxFret', app)?.value ?? 12);
   const activeBtn = $('.q-btn.active', app);
   const questionCount = activeBtn ? parseInt(activeBtn.dataset.count) : 20;
-  store.saveSettings({ minFret, maxFret, questionCount });
+  const activeStringBtn = $('.sf-btn.active', app);
+  const practiceString = activeStringBtn && activeStringBtn.dataset.string !== 'all'
+    ? parseInt(activeStringBtn.dataset.string)
+    : null;
+  store.saveSettings({ minFret, maxFret, questionCount, practiceString });
 }
 
 /* ──────────────────── GAME SCREEN ──────────────────── */
@@ -223,6 +244,7 @@ function startGame(mode) {
     startTime: Date.now(),
     minFret: settings.minFret,
     maxFret: settings.maxFret,
+    practiceString: settings.practiceString,  // null = all, 0-5 = specific string
     currentQuestion: null,
     answered: false,
   };
@@ -262,6 +284,11 @@ function startGame(mode) {
 
   // Zoom fretboard to the selected practice range
   fretboard.setViewRange(gameState.minFret, gameState.maxFret);
+
+  // Highlight active string if practising a single string
+  if (gameState.practiceString !== null) {
+    fretboard.highlightActiveString(gameState.practiceString);
+  }
 
   gameState.timerInterval = setInterval(updateTimer, 100);
 
@@ -309,13 +336,23 @@ function nextQuestion() {
 
 /* ── Find Note: show note name, user taps fretboard ── */
 function setupFindNote() {
-  const noteName = getRandomNoteName();
+  // If practising a single string, pick a note that exists on that string in range
+  let noteName;
+  if (gameState.practiceString !== null) {
+    const pos = getRandomPositionFiltered(gameState.minFret, gameState.maxFret, gameState.practiceString);
+    noteName = pos.name;
+  } else {
+    noteName = getRandomNoteName();
+  }
   gameState.currentQuestion = { noteName };
 
+  const stringHint = gameState.practiceString !== null
+    ? `<span class="prompt-hint">${STANDARD_TUNING[gameState.practiceString].string}弦</span>` : '';
   $('#gamePrompt').innerHTML = `
     <div class="prompt-find">
       <span class="prompt-label">Find</span>
       <span class="prompt-note">${noteName}</span>
+      ${stringHint}
     </div>
   `;
   $('#gameChoices').innerHTML = '';
@@ -323,15 +360,17 @@ function setupFindNote() {
   fretboard.onFretClick = (s, f) => {
     if (gameState.answered) return;
     const note = getNoteAt(s, f);
+    // When practising a specific string, only that string counts
+    const stringOk = gameState.practiceString !== null ? s === gameState.practiceString : true;
     const isCorrect = note.name === noteName &&
-      f >= gameState.minFret && f <= gameState.maxFret;
+      f >= gameState.minFret && f <= gameState.maxFret && stringOk;
     handleAnswer(isCorrect, s, f, noteName);
   };
 }
 
 /* ── Name Note: highlight position, user picks from buttons ── */
 function setupNameNote() {
-  const pos = getRandomPosition(gameState.minFret, gameState.maxFret);
+  const pos = getRandomPositionFiltered(gameState.minFret, gameState.maxFret, gameState.practiceString);
   const wrongNotes = getWrongNotes(pos.name, 3);
   const choices = [pos.name, ...wrongNotes].sort(() => Math.random() - 0.5);
   gameState.currentQuestion = { position: pos, correctName: pos.name };
@@ -363,7 +402,7 @@ function setupNameNote() {
 
 /* ── Ear Training: play note audio only, user taps fretboard ── */
 function setupEarTraining() {
-  const pos = getRandomPosition(gameState.minFret, gameState.maxFret);
+  const pos = getRandomPositionFiltered(gameState.minFret, gameState.maxFret, gameState.practiceString);
   gameState.currentQuestion = { position: pos, noteName: pos.name };
 
   // No visual hint — only audio
@@ -393,9 +432,10 @@ function setupEarTraining() {
     fretboard.onFretClick = (s, f) => {
       if (gameState.answered) return;
       const note = getNoteAt(s, f);
-      // Accept any position with the same note name
+      // When practising a specific string, only that string counts
+      const stringOk = gameState.practiceString !== null ? s === gameState.practiceString : true;
       const isCorrect = note.name === pos.name &&
-        f >= gameState.minFret && f <= gameState.maxFret;
+        f >= gameState.minFret && f <= gameState.maxFret && stringOk;
       handleAnswer(isCorrect, s, f, pos.name);
     };
   }, 600);

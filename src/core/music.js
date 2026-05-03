@@ -61,6 +61,18 @@ export function getRandomPosition(minFret = 0, maxFret = 12) {
   return getNoteAt(s, f);
 }
 
+/**
+ * Get a random note, optionally constrained to a specific string.
+ * @param {number} minFret
+ * @param {number} maxFret
+ * @param {number|null} stringFilter - 0-5 to limit to one string, null = any string
+ */
+export function getRandomPositionFiltered(minFret = 0, maxFret = 12, stringFilter = null) {
+  const s = stringFilter !== null ? stringFilter : Math.floor(Math.random() * 6);
+  const f = minFret + Math.floor(Math.random() * (maxFret - minFret + 1));
+  return getNoteAt(s, f);
+}
+
 /** Get a random note name from the 12 chromatic notes */
 export function getRandomNoteName() {
   return NOTES[Math.floor(Math.random() * 12)];
