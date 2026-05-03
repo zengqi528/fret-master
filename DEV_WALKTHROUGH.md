@@ -97,37 +97,56 @@
 4. **Deploy Automation** (`deploy.ps1`)
    - Automated git push + Vercel production deploy + domain alias binding
 
+### Phase 6: Practice Upgrades & Core Tools
+
+**Goal**: Professional practice features and data safety
+
+1. **String Filter** (`app.js`, `music.js`)
+   - Settings selector: All / 6弦 / 5弦 / 4弦 / 3弦 / 2弦 / 1弦
+   - `getRandomPositionFiltered()` constrains questions to one string
+   - Fretboard `highlightActiveString()` dims other strings visually
+2. **Built-in Metronome** (`metronome.js`)
+   - Web Audio tick synthesis with accented downbeats
+   - BPM slider (40-240), play/pause toggle, visual pulse
+3. **Practice Calendar** (`storage.js`, `app.js`)
+   - 7-day dot calendar on home screen
+   - `recordPracticeDay()` called on each game completion
+4. **Data Export/Import** (`storage.js`, `app.js`)
+   - JSON download backup + file picker import with validation
+5. **Descending Intervals** (`app.js`)
+   - ↑ Up / ↓ Down / ↕ Mix direction selector
+
 ## Key Design Decisions
 
 | Decision | Rationale |
 |----------|-----------|
 | **SVG fretboard** | Scales perfectly across mobile/tablet/desktop viewports |
-| **Karplus-Strong audio** | Zero audio file dependencies, works offline, ~50 lines of code |
-| **No framework** | <15KB total JS, instant load, no build complexity |
-| **localStorage only** | No server needed, works on airplane, zero auth friction |
-| **Screen replacement** | `innerHTML` swap is simpler than routing library, fast enough for this UI |
-| **Seeded PRNG for daily** | Same questions for all users on same day without server |
+| **Karplus-Strong audio** | Zero audio file dependencies, works offline |
+| **No framework** | <15KB total JS, instant load |
+| **localStorage only** | No server needed, works offline |
+| **Seeded PRNG for daily** | Deterministic daily challenge without server |
 
 ## Current File Sizes
 
 | File | Purpose | ~Lines |
 |------|---------|--------|
-| `app.js` | UI + game logic | ~930 |
-| `style.css` | All styles | ~1200 |
-| `fretboard.js` | SVG engine | ~360 |
-| `music.js` | Theory data | ~180 |
-| `audio.js` | Sound synthesis | ~80 |
-| `storage.js` | Persistence | ~230 |
+| `app.js` | UI + game logic | ~1095 |
+| `style.css` | All styles | ~1775 |
+| `fretboard.js` | SVG engine | ~530 |
+| `music.js` | Theory data | ~195 |
+| `audio.js` | Sound synthesis | ~150 |
+| `storage.js` | Persistence | ~290 |
+| `metronome.js` | Metronome engine | ~80 |
 
 ## Possible Future Features
 
-- [ ] **Descending intervals** — option in interval training
+- [x] ~~Descending intervals~~ — ✅ Phase 6
+- [x] ~~Metronome~~ — ✅ Phase 6
+- [x] ~~Export/import data~~ — ✅ Phase 6
 - [ ] **Chord quiz mode** — hear chord, identify type
 - [ ] **CAGED system** — visualize chord shapes across the neck
-- [ ] **Metronome** — built-in practice metronome
+- [ ] **Circle of Fifths** — interactive theory visualization
+- [ ] **Spaced repetition** — SRS-based intelligent practice
 - [ ] **Custom tunings** — Drop D, Open G, etc.
-- [ ] **Export/import data** — backup progress as JSON
-- [ ] **Dark/light theme toggle**
-- [ ] **Leaderboard** — optional cloud sync for daily challenge rankings
-- [ ] **Sound quality** — explore alternative synthesis (FM, wavetable)
 - [ ] **Localization** — Chinese/English language toggle
+
