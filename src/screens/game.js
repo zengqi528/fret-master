@@ -22,7 +22,11 @@ function isLandscape() {
 }
 
 function getFretboardHeight() {
-  return isLandscape() ? 280 : 200;
+  if (isLandscape()) {
+    // Dynamically adjust to avoid overflow when iOS Safari address bar is visible
+    return Math.max(120, Math.min(280, window.innerHeight - 120));
+  }
+  return 200;
 }
 
 export function render(ctx, mode) {

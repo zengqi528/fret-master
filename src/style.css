@@ -41,6 +41,7 @@
 
 html, body {
   height: 100%;
+  height: 100dvh;
   overflow: hidden;
   -webkit-tap-highlight-color: transparent;
   -webkit-user-select: none;
@@ -63,6 +64,78 @@ body {
   position: relative;
   overflow-y: auto;
   overflow-x: hidden;
+}
+
+/* ─── iOS Install Prompt ────────────────────────────────────── */
+.ios-prompt {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(150%);
+  width: 90%;
+  max-width: 400px;
+  background: var(--bg-card);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.4), 0 0 0 1px var(--accent-dim);
+  z-index: 10000;
+  opacity: 0;
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s;
+  pointer-events: none;
+}
+
+.ios-prompt.visible {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.ios-prompt-content {
+  position: relative;
+  color: var(--text-primary);
+}
+
+.ios-prompt-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: var(--accent);
+}
+
+.ios-prompt-desc {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.ios-prompt-desc strong {
+  color: var(--text-primary);
+}
+
+.ios-prompt-close {
+  position: absolute;
+  top: -8px;
+  right: -10px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.ios-prompt-arrow {
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  margin-left: -8px;
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 8px solid var(--accent);
 }
 
 /* ─── Screen transitions ───────────────────────────────────── */

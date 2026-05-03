@@ -23,6 +23,17 @@
     <button id="dismissRotate" class="rotate-dismiss">继续竖屏 / Continue</button>
   </div>
   <div id="app"></div>
+
+  <!-- iOS Add to Home Screen Prompt -->
+  <div id="iosInstallPrompt" class="ios-prompt">
+    <div class="ios-prompt-content">
+      <button id="iosPromptClose" class="ios-prompt-close">✕</button>
+      <div class="ios-prompt-title">想要全屏体验？</div>
+      <div class="ios-prompt-desc">iPhone浏览器无法全屏。请点击底部 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin: 0 4px;"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>，然后选择<br/><strong>“添加到主屏幕 (Add to Home Screen)”</strong></div>
+    </div>
+    <div class="ios-prompt-arrow"></div>
+  </div>
+
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>
