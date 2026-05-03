@@ -3,33 +3,44 @@
 ## Architecture Overview
 
 ```
-┌─────────────┐     ┌──────────────┐     ┌──────────────┐
-│   app.js    │────▶│  fretboard.js│     │   audio.js   │
-│ (UI Router) │     │  (SVG Engine)│     │ (Web Audio)  │
-└──────┬──────┘     └──────────────┘     └──────────────┘
-       │
-       ├──────────▶ music.js   (theory: notes, scales, intervals, chords)
-       └──────────▶ storage.js (localStorage: heatmap, records, achievements)
+src/
+├── main.js              # Entry point (SW registration, boot)
+├── app.js               # Thin router (~46 lines) — screen dispatch + shared context
+├── style.css            # All styles
+├── core/                # Engine layer (stateless, reusable)
+│   ├── audio.js         # Web Audio synthesis (Karplus-Strong)
+│   ├── fretboard.js     # SVG fretboard rendering engine
+│   ├── metronome.js     # BPM-based metronome
+│   ├── music.js         # Theory data (notes, scales, intervals, chords)
+│   └── storage.js       # localStorage persistence
+└── screens/             # UI screens (each exports render(ctx))
+    ├── home.js          # Landing page, settings, metronome (~233 lines)
+    ├── game.js          # Game loop + all 7 game modes (~389 lines)
+    ├── results.js       # Post-game score display (~52 lines)
+    ├── stats.js         # Progress, heatmap, data mgmt (~113 lines)
+    ├── scales.js        # Scale explorer (~92 lines)
+    └── chords.js        # Chord library (~84 lines)
 ```
 
-### app.js — The State Machine
+### app.js — The Router
 
-The entire UI is driven by a single screen router:
+A thin coordinator (46 lines). Creates a shared `ctx` object and dispatches to screen modules:
 
 ```js
-function showScreen(name, data) {
+const ctx = { app, $, $$, formatTime, showScreen };
+
+function showScreen(name, data = {}) {
   switch (name) {
-    case 'home':    renderHome();           break;
-    case 'game':    startGame(data.mode);   break;
-    case 'results': renderResults(data);    break;
-    case 'stats':   renderStats();          break;
-    case 'scales':  renderScaleExplorer();  break;
-    case 'chords':  renderChordExplorer();  break;
+    case 'home':    homeScreen.render(ctx);        break;
+    case 'game':    gameScreen.render(ctx, data.mode); break;
+    case 'results': resultsScreen.render(ctx, data);   break;
+    // ...
   }
 }
 ```
 
-Each screen function replaces `app.innerHTML` entirely (no virtual DOM). This is fast enough for this app size.
+Each screen module receives `ctx` and manages its own `innerHTML` + event binding.
+Screens never import `app.js` — all shared APIs come via `ctx`.
 
 ### Game Loop
 
