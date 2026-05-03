@@ -8,6 +8,7 @@ import {
   getScalePositions, INTERVALS, CHORDS, STANDARD_TUNING,
 } from './core/music.js';
 import { playNote, playCorrect, playWrong, unlockAudio } from './core/audio.js';
+import * as metronome from './core/metronome.js';
 import * as store from './core/storage.js';
 
 /* ──────────────────── State ──────────────────── */
@@ -46,10 +47,12 @@ function showScreen(name, data = {}) {
 
 /* ──────────────────── HOME SCREEN ──────────────────── */
 function renderHome() {
+  metronome.stop();
   const settings = store.getSettings();
   const streak = store.getStreak();
   const achievements = store.getAchievements();
   const unlockedCount = achievements.filter(a => a.unlocked).length;
+  const calendar = store.getPracticeHistory(7);
 
   app.innerHTML = `
     <div class="screen home-screen">
@@ -60,6 +63,9 @@ function renderHome() {
         </div>
         <p class="tagline">Master the fretboard, one note at a time</p>
         ${streak.best > 0 ? `<div class="streak-badge">🔥 Best streak: ${streak.best}</div>` : ''}
+        <div class="practice-calendar">
+          ${calendar.map(d => `<div class="cal-day ${d.practiced ? 'practiced' : ''}"><span class="cal-label">${d.dayName}</span><span class="cal-dot">${d.practiced ? '●' : '○'}</span></div>`).join('')}
+        </div>
       </header>
 
       <div class="mode-cards">
@@ -166,6 +172,29 @@ function renderHome() {
             `).join('')}
           </div>
         </div>
+        <div class="setting-row">
+          <label>Intervals</label>
+          <div class="interval-dir-btns">
+            ${[
+              { val: 'ascending', label: '↑ Up' },
+              { val: 'descending', label: '↓ Down' },
+              { val: 'random', label: '↕ Mix' },
+            ].map(d => `
+              <button class="sf-btn ${(settings.intervalDirection || 'ascending') === d.val ? 'active' : ''}" data-dir="${d.val}">${d.label}</button>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+
+      <div class="metronome-bar" id="metronomeBar">
+        <button class="metro-toggle" id="metroToggle">🎵 Metronome</button>
+        <div class="metro-controls" id="metroControls" style="display:none">
+          <button class="metro-play" id="metroPlay">▶</button>
+          <input type="range" id="metroBpm" min="40" max="240" value="${settings.metronomeBpm || 80}" />
+          <span class="metro-bpm-val" id="metroBpmVal">${settings.metronomeBpm || 80}</span>
+          <span class="metro-bpm-label">BPM</span>
+          <div class="metro-pulse" id="metroPulse"></div>
+        </div>
       </div>
 
       <div class="home-footer-links">
@@ -191,9 +220,16 @@ function renderHome() {
     });
   });
 
-  $$('.sf-btn', app).forEach(btn => {
+  $$('#stringFilterBtns .sf-btn', app).forEach(btn => {
     btn.addEventListener('click', () => {
-      $$('.sf-btn', app).forEach(b => b.classList.remove('active'));
+      $$('#stringFilterBtns .sf-btn', app).forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+
+  $$('.interval-dir-btns .sf-btn', app).forEach(btn => {
+    btn.addEventListener('click', () => {
+      $$('.interval-dir-btns .sf-btn', app).forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
     });
   });
@@ -208,6 +244,36 @@ function renderHome() {
     unlockAudio();
     showScreen('chords');
   });
+
+  // Metronome
+  $('#metroToggle', app).addEventListener('click', () => {
+    const ctrl = $('#metroControls', app);
+    ctrl.style.display = ctrl.style.display === 'none' ? 'flex' : 'none';
+  });
+  const bpmSlider = $('#metroBpm', app);
+  const bpmVal = $('#metroBpmVal', app);
+  bpmSlider.addEventListener('input', () => {
+    bpmVal.textContent = bpmSlider.value;
+  });
+  $('#metroPlay', app).addEventListener('click', () => {
+    unlockAudio();
+    const btn = $('#metroPlay', app);
+    const pulse = $('#metroPulse', app);
+    if (metronome.running()) {
+      metronome.stop();
+      btn.textContent = '▶';
+      pulse.classList.remove('beating');
+    } else {
+      const bpm = parseInt(bpmSlider.value);
+      store.saveSettings({ metronomeBpm: bpm });
+      metronome.start(bpm, 4, (beat, accent) => {
+        pulse.classList.remove('beating');
+        void pulse.offsetWidth;
+        pulse.classList.add('beating');
+      });
+      btn.textContent = '⏸';
+    }
+  });
 }
 
 function saveCurrentSettings() {
@@ -215,11 +281,13 @@ function saveCurrentSettings() {
   const maxFret = parseInt($('#maxFret', app)?.value ?? 12);
   const activeBtn = $('.q-btn.active', app);
   const questionCount = activeBtn ? parseInt(activeBtn.dataset.count) : 20;
-  const activeStringBtn = $('.sf-btn.active', app);
+  const activeStringBtn = $('#stringFilterBtns .sf-btn.active', app);
   const practiceString = activeStringBtn && activeStringBtn.dataset.string !== 'all'
     ? parseInt(activeStringBtn.dataset.string)
     : null;
-  store.saveSettings({ minFret, maxFret, questionCount, practiceString });
+  const activeDirBtn = $('.interval-dir-btns .sf-btn.active', app);
+  const intervalDirection = activeDirBtn ? activeDirBtn.dataset.dir : 'ascending';
+  store.saveSettings({ minFret, maxFret, questionCount, practiceString, intervalDirection });
 }
 
 /* ──────────────────── GAME SCREEN ──────────────────── */
@@ -245,6 +313,7 @@ function startGame(mode) {
     minFret: settings.minFret,
     maxFret: settings.maxFret,
     practiceString: settings.practiceString,  // null = all, 0-5 = specific string
+    intervalDirection: settings.intervalDirection || 'ascending',
     currentQuestion: null,
     answered: false,
   };
@@ -445,8 +514,19 @@ function setupEarTraining() {
 function setupIntervalTraining() {
   const rootMidi = 40 + Math.floor(Math.random() * 24);
   const correct = INTERVALS[Math.floor(Math.random() * INTERVALS.length)];
-  const secondMidi = rootMidi + correct.semitones;
-  gameState.currentQuestion = { rootMidi, secondMidi, correct };
+
+  // Determine direction: ascending, descending, or random
+  const dirSetting = gameState.intervalDirection || 'ascending';
+  let direction;
+  if (dirSetting === 'random') {
+    direction = Math.random() < 0.5 ? 'ascending' : 'descending';
+  } else {
+    direction = dirSetting;
+  }
+  const secondMidi = direction === 'descending'
+    ? rootMidi - correct.semitones
+    : rootMidi + correct.semitones;
+  gameState.currentQuestion = { rootMidi, secondMidi, correct, direction };
 
   fretboard.onFretClick = null;
   fretboard.setInteractive(false);
@@ -455,9 +535,10 @@ function setupIntervalTraining() {
     .sort(() => Math.random() - 0.5).slice(0, 3);
   const choices = [correct, ...wrongs].sort(() => Math.random() - 0.5);
 
+  const dirIcon = direction === 'descending' ? '↓' : '↑';
   $('#gamePrompt').innerHTML = `
     <div class="prompt-ear">
-      <span class="prompt-label">What interval?</span>
+      <span class="prompt-label">What interval? ${dirIcon}</span>
       <button class="replay-btn" id="replayBtn">🔊 Play</button>
     </div>
   `;
@@ -622,10 +703,14 @@ function handleNameAnswer(isCorrect, btnEl, pos) {
 
 function endGame() {
   clearInterval(gameState.timerInterval);
+  metronome.stop();
   const totalTime = Date.now() - gameState.startTime;
   const { isNewBestTime, isNewBestScore, newBadges } = store.recordSession(
     gameState.mode, gameState.correct, gameState.totalQuestions, totalTime
   );
+
+  // Record this day as practiced
+  store.recordPracticeDay();
 
   if (gameState.mode === 'daily-challenge') {
     store.recordDaily(gameState.correct);
@@ -786,10 +871,38 @@ function renderStats() {
         </p>
         ${heatmapHtml}
       </div>
+
+      <div class="stats-section">
+        <h3>Data Management</h3>
+        <div class="data-actions">
+          <button class="btn-secondary btn-sm" id="exportBtn">📤 Export Data</button>
+          <button class="btn-secondary btn-sm" id="importBtn">📥 Import Data</button>
+          <input type="file" id="importFile" accept=".json" style="display:none" />
+        </div>
+      </div>
     </div>
   `;
 
   $('#statsBack', app).addEventListener('click', () => showScreen('home'));
+
+  // Data export/import
+  $('#exportBtn', app).addEventListener('click', () => store.exportData());
+  $('#importBtn', app).addEventListener('click', () => $('#importFile', app).click());
+  $('#importFile', app).addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = store.importData(reader.result);
+      if (result.ok) {
+        alert('Data imported successfully! Refreshing...');
+        showScreen('stats');
+      } else {
+        alert('Import failed: ' + result.error);
+      }
+    };
+    reader.readAsText(file);
+  });
 }
 
 /* ──────────────────── SCALE EXPLORER ──────────────────── */

@@ -44,6 +44,69 @@ export function getData() {
   return load() || getDefault();
 }
 
+/** Export all data as a JSON download */
+export function exportData() {
+  const data = getData();
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `fret-master-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/** Import data from a JSON file. Returns true on success. */
+export function importData(jsonString) {
+  try {
+    const data = JSON.parse(jsonString);
+    // Basic validation: must have heatmap and records
+    if (!data.heatmap || !data.records) {
+      return { ok: false, error: 'Invalid data format' };
+    }
+    save(data);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
+
+/** Record a practice session timestamp for the calendar */
+export function recordPracticeDay() {
+  const data = getData();
+  if (!data.practiceHistory) data.practiceHistory = [];
+  const today = new Date().toISOString().slice(0, 10);
+  if (!data.practiceHistory.includes(today)) {
+    data.practiceHistory.push(today);
+    // Keep last 90 days only
+    if (data.practiceHistory.length > 90) {
+      data.practiceHistory = data.practiceHistory.slice(-90);
+    }
+  }
+  save(data);
+}
+
+/** Get recent practice days for calendar display */
+export function getPracticeHistory(days = 7) {
+  const data = getData();
+  const history = data.practiceHistory || [];
+  const result = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+    result.push({
+      date: dateStr,
+      dayName: ['日', '一', '二', '三', '四', '五', '六'][d.getDay()],
+      practiced: history.includes(dateStr),
+    });
+  }
+  return result;
+}
+
 export function getSettings() {
   return getData().settings;
 }
