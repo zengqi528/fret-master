@@ -46,15 +46,10 @@ function showScreen(name, data = {}) {
   void app.offsetWidth;
   app.classList.add('screen-enter');
 
-  // Screens that work well in portrait mode — suppress rotation prompt
-  const portraitFriendly = ['home', 'drummer', 'triads', 'arpeggios', 'modes', 'journey', 'stats'];
+  // Auto-dismiss rotation prompt so it never blocks screen interaction
   const rotatePrompt = document.getElementById('rotatePrompt');
-  if (rotatePrompt) {
-    if (portraitFriendly.includes(name)) {
-      rotatePrompt.classList.add('dismissed');
-    } else {
-      rotatePrompt.classList.remove('dismissed');
-    }
+  if (rotatePrompt && rotatePrompt.classList.contains('dismissed')) {
+    // Keep it dismissed — user already chose to continue
   }
 
   switch (name) {

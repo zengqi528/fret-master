@@ -52,86 +52,80 @@ export function render(ctx) {
         <button class="back-btn" id="drummerBack">←</button>
         <h2>${t('drum_machine') || 'Drum Machine'}</h2>
       </div>
-
-      <div class="drummer-content">
-        <!-- Pattern Selection -->
-        <div class="drum-card">
-          <div class="drum-tabs" id="genreTabs" style="overflow-x: auto; white-space: nowrap;">
-            ${Object.keys(patterns).map(cat => {
-              const label = cat === 'basic' ? (t('basic') || 'Basic') : (t(cat.toLowerCase().replace(/[^a-z0-9]/g, '_')) || cat);
-              return `<button class="drum-tab ${currentState.activeCategory === cat ? 'active' : ''}" data-cat="${cat}">${label}</button>`;
-            }).join('')}
-          </div>
-          <div class="drum-select-wrap">
-            <select id="drumPattern" class="drum-select">
-              ${patterns[currentState.activeCategory].map(p => 
-                `<option value="${p.id}" ${p.id === currentState.patternId ? 'selected' : ''}>${t(p.id) || p.name}</option>`
-              ).join('')}
-            </select>
-          </div>
-        </div>
-
-        <!-- Beat Visualizer -->
-        <div class="beat-visualizer" id="beatVis">
-          <!-- Dots injected here -->
-        </div>
-
-        <!-- Tempo Controls -->
-        <div class="drum-card tempo-card">
-          <div class="tempo-main">
-            <button class="tempo-btn" id="bpmMinus">−</button>
-            <div class="bpm-display">
-              <div class="bpm-val" id="bpmVal">${currentState.bpm}</div>
-              <div class="bpm-label">BPM</div>
+      <div class="drummer-layout">
+        <!-- LEFT COLUMN: Pattern + Visualizer + Transport -->
+        <div class="drummer-col-main">
+          <div class="drum-card">
+            <div class="drum-tabs" id="genreTabs">
+              ${Object.keys(patterns).map(cat => {
+                const label = cat === 'basic' ? (t('basic') || 'Basic') : (t(cat.toLowerCase().replace(/[^a-z0-9]/g, '_')) || cat);
+                return `<button class="drum-tab ${currentState.activeCategory === cat ? 'active' : ''}" data-cat="${cat}">${label}</button>`;
+              }).join('')}
             </div>
-            <button class="tempo-btn" id="bpmPlus">+</button>
-            <button class="tap-btn" id="tapTempo">TAP</button>
-          </div>
-        </div>
-
-        <!-- Options -->
-        <div class="drum-card options-card">
-          <div class="drum-row">
-            <label>${t('swing') || 'Swing'}</label>
-            <div class="swing-wrap">
-              <input type="range" id="swingRange" min="0" max="66" value="${currentState.swing}">
-              <span id="swingVal">${currentState.swing}%</span>
+            <div class="drum-select-wrap">
+              <select id="drumPattern" class="drum-select">
+                ${patterns[currentState.activeCategory].map(p => 
+                  `<option value="${p.id}" ${p.id === currentState.patternId ? 'selected' : ''}>${t(p.id) || p.name}</option>`
+                ).join('')}
+              </select>
             </div>
           </div>
-          <div class="drum-row">
-            <label>${t('sound') || 'Sound'}</label>
-            <div class="sound-toggles">
-              <button class="snd-btn ${currentState.soundType === 'kit' ? 'active' : ''}" data-snd="kit">🥁</button>
-              <button class="snd-btn ${currentState.soundType === 'click' ? 'active' : ''}" data-snd="click">🔔</button>
-              <button class="snd-btn ${currentState.soundType === 'hihat' ? 'active' : ''}" data-snd="hihat">🎩</button>
-            </div>
+          <div class="beat-visualizer" id="beatVis">
+            <!-- Dots injected here -->
+          </div>
+          <div class="transport-wrap">
+            <button class="count-in-btn ${currentState.countIn ? 'active' : ''}" id="toggleCountIn">
+              ${t('count_in') || 'Count-in'}
+            </button>
+            <button class="play-btn" id="playBtn">▶ PLAY</button>
           </div>
         </div>
-
-        <!-- Speed Trainer -->
-        <div class="drum-card trainer-card ${currentState.trainerEnabled ? 'active' : ''}">
-          <div class="trainer-header">
-            <label>${t('speed_trainer') || 'Speed Trainer'}</label>
-            <button class="toggle-btn" id="toggleTrainer">${currentState.trainerEnabled ? 'ON' : 'OFF'}</button>
-          </div>
-          <div class="trainer-body" style="display: ${currentState.trainerEnabled ? 'block' : 'none'};">
-            <div class="trainer-row">
-              <span>Start: <input type="number" id="trStart" value="${currentState.trainerStart}"></span>
-              <span>End: <input type="number" id="trEnd" value="${currentState.trainerEnd}"></span>
-              <span>+ <input type="number" id="trInc" value="${currentState.trainerInc}"></span>
-            </div>
-            <div class="trainer-row mt-2">
-              <span>Every <input type="number" id="trBars" value="${currentState.trainerBars}"> bars</span>
+        <!-- RIGHT COLUMN: Tempo + Options + Trainer -->
+        <div class="drummer-col-side">
+          <div class="drum-card tempo-card">
+            <div class="tempo-main">
+              <button class="tempo-btn" id="bpmMinus">−</button>
+              <div class="bpm-display">
+                <div class="bpm-val" id="bpmVal">${currentState.bpm}</div>
+                <div class="bpm-label">BPM</div>
+              </div>
+              <button class="tempo-btn" id="bpmPlus">+</button>
+              <button class="tap-btn" id="tapTempo">TAP</button>
             </div>
           </div>
-        </div>
-
-        <!-- Transport -->
-        <div class="transport-wrap">
-          <button class="count-in-btn ${currentState.countIn ? 'active' : ''}" id="toggleCountIn">
-            ${t('count_in') || 'Count-in'}
-          </button>
-          <button class="play-btn" id="playBtn">▶ PLAY</button>
+          <div class="drum-card options-card">
+            <div class="drum-row">
+              <label>${t('swing') || 'Swing'}</label>
+              <div class="swing-wrap">
+                <input type="range" id="swingRange" min="0" max="66" value="${currentState.swing}">
+                <span id="swingVal">${currentState.swing}%</span>
+              </div>
+            </div>
+            <div class="drum-row">
+              <label>${t('sound') || 'Sound'}</label>
+              <div class="sound-toggles">
+                <button class="snd-btn ${currentState.soundType === 'kit' ? 'active' : ''}" data-snd="kit">🥁</button>
+                <button class="snd-btn ${currentState.soundType === 'click' ? 'active' : ''}" data-snd="click">🔔</button>
+                <button class="snd-btn ${currentState.soundType === 'hihat' ? 'active' : ''}" data-snd="hihat">🎩</button>
+              </div>
+            </div>
+          </div>
+          <div class="drum-card trainer-card ${currentState.trainerEnabled ? 'active' : ''}">
+            <div class="trainer-header">
+              <label>${t('speed_trainer') || 'Speed Trainer'}</label>
+              <button class="toggle-btn" id="toggleTrainer">${currentState.trainerEnabled ? 'ON' : 'OFF'}</button>
+            </div>
+            <div class="trainer-body" style="display: ${currentState.trainerEnabled ? 'block' : 'none'};">
+              <div class="trainer-row">
+                <span>Start: <input type="number" id="trStart" value="${currentState.trainerStart}"></span>
+                <span>End: <input type="number" id="trEnd" value="${currentState.trainerEnd}"></span>
+                <span>+ <input type="number" id="trInc" value="${currentState.trainerInc}"></span>
+              </div>
+              <div class="trainer-row mt-2">
+                <span>Every <input type="number" id="trBars" value="${currentState.trainerBars}"> bars</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
