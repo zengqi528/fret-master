@@ -10,6 +10,11 @@ import * as scalesScreen from './screens/scales.js';
 import * as chordsScreen from './screens/chords.js';
 import * as circleScreen from './screens/circle.js';
 import * as cagedScreen from './screens/caged.js';
+import * as drummerScreen from './screens/drummer.js';
+import * as triadsScreen from './screens/triads.js';
+import * as arpeggiosScreen from './screens/arpeggios.js';
+import * as modesScreen from './screens/modes.js';
+import * as journeyScreen from './screens/journey.js';
 import { setLang } from './core/i18n.js';
 import * as store from './core/storage.js';
 
@@ -42,14 +47,19 @@ function showScreen(name, data = {}) {
   app.classList.add('screen-enter');
 
   switch (name) {
-    case 'home':    homeScreen.render(ctx); break;
-    case 'game':    gameScreen.render(ctx, data.mode); break;
-    case 'results': resultsScreen.render(ctx, data); break;
-    case 'stats':   statsScreen.render(ctx); break;
-    case 'scales':  scalesScreen.render(ctx); break;
-    case 'chords':  chordsScreen.render(ctx); break;
-    case 'circle':  circleScreen.render(ctx); break;
-    case 'caged':   cagedScreen.render(ctx); break;
+    case 'home':      homeScreen.render(ctx); break;
+    case 'game':      gameScreen.render(ctx, data.mode); break;
+    case 'results':   resultsScreen.render(ctx, data); break;
+    case 'stats':     statsScreen.render(ctx); break;
+    case 'scales':    scalesScreen.render(ctx); break;
+    case 'chords':    chordsScreen.render(ctx); break;
+    case 'circle':    circleScreen.render(ctx); break;
+    case 'caged':     cagedScreen.render(ctx); break;
+    case 'drummer':   drummerScreen.render(ctx); break;
+    case 'triads':    triadsScreen.render(ctx); break;
+    case 'arpeggios': arpeggiosScreen.render(ctx); break;
+    case 'modes':     modesScreen.render(ctx); break;
+    case 'journey':   journeyScreen.render(ctx); break;
   }
 }
 
@@ -59,3 +69,4 @@ export function init() {
   if (settings.lang) setLang(settings.lang);
   showScreen('home');
 }
+

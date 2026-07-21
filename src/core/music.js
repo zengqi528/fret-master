@@ -156,6 +156,12 @@ export const SCALES = {
   'Blues':              [0, 3, 5, 6, 7, 10],
   'Dorian':            [0, 2, 3, 5, 7, 9, 10],
   'Mixolydian':        [0, 2, 4, 5, 7, 9, 10],
+  'Phrygian':          [0, 1, 3, 5, 7, 8, 10],
+  'Lydian':            [0, 2, 4, 6, 7, 9, 11],
+  'Locrian':           [0, 1, 3, 5, 6, 8, 10],
+  'Whole Tone':        [0, 2, 4, 6, 8, 10],
+  'Diminished HW':     [0, 1, 3, 4, 6, 7, 9, 10],
+  'Diminished WH':     [0, 2, 3, 5, 6, 8, 9, 11],
   'Harmonic Minor':    [0, 2, 3, 5, 7, 8, 11],
   'Melodic Minor':     [0, 2, 3, 5, 7, 9, 11],
   'Chromatic':         [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
@@ -356,3 +362,141 @@ export const CIRCLE_OF_FIFTHS = [
   { note: 'A#', major: 'Bb', minor: 'Gm',  sharps: 0, flats: 2 },
   { note: 'F',  major: 'F',  minor: 'Dm',  sharps: 0, flats: 1 },
 ];
+
+/* ─── 3NPS Patterns ─────────────────────────────────────────── */
+
+export const THREE_NPS_PATTERNS = {
+  'Ionian':     { strings: [[0,2,4], [0,2,4], [0,1,3], [0,1,3], [0,2,3], [0,2,3]] },
+  'Dorian':     { strings: [[0,2,3], [0,2,4], [0,2,4], [0,2,4], [0,1,3], [0,1,3]] },
+  'Phrygian':   { strings: [[0,1,3], [0,2,3], [0,2,3], [0,2,4], [0,2,4], [0,2,4]] },
+  'Lydian':     { strings: [[0,2,4], [0,1,3], [0,1,3], [0,2,3], [0,2,3], [0,2,4]] },
+  'Mixolydian': { strings: [[0,2,4], [0,2,4], [0,2,4], [0,1,3], [0,1,3], [0,2,3]] },
+  'Aeolian':    { strings: [[0,2,3], [0,2,3], [0,2,4], [0,2,4], [0,2,4], [0,1,3]] },
+  'Locrian':    { strings: [[0,1,3], [0,1,3], [0,2,3], [0,2,3], [0,2,4], [0,2,4]] },
+};
+
+/* ─── Triads ────────────────────────────────────────────────── */
+
+export const TRIAD_TYPES = [
+  { name: 'Major', intervals: [0, 4, 7] },
+  { name: 'Minor', intervals: [0, 3, 7] },
+  { name: 'Diminished', intervals: [0, 3, 6] },
+  { name: 'Augmented', intervals: [0, 4, 8] },
+];
+
+export const TRIAD_STRING_GROUPS = [
+  { name: 'Strings 1-2-3', strings: [3, 4, 5], label: '①②③' },
+  { name: 'Strings 2-3-4', strings: [2, 3, 4], label: '②③④' },
+  { name: 'Strings 3-4-5', strings: [1, 2, 3], label: '③④⑤' },
+  { name: 'Strings 4-5-6', strings: [0, 1, 2], label: '④⑤⑥' },
+];
+
+export const INVERSIONS = ['Root', '1st', '2nd'];
+
+export function getTriadPositions(rootIdx, type, stringGroup, inversion, maxFret = 15) {
+  const triad = TRIAD_TYPES.find(t => t.name === type);
+  if (!triad) return [];
+  const intervals = triad.intervals;
+  
+  let labels = ['R', '3', '5'];
+  if (type === 'Minor') labels = ['R', '♭3', '5'];
+  if (type === 'Diminished') labels = ['R', '♭3', '♭5'];
+  if (type === 'Augmented') labels = ['R', '3', '#5'];
+  
+  const targetIndices = intervals.map(i => (rootIdx + i) % 12);
+  
+  let order;
+  if (inversion === 'Root') order = [0, 1, 2];
+  else if (inversion === '1st') order = [1, 2, 0];
+  else if (inversion === '2nd') order = [2, 0, 1];
+
+  const results = [];
+  const [s0, s1, s2] = stringGroup;
+  
+  const expectedLowestIdx = targetIndices[order[0]];
+  const expectedMidIdx = targetIndices[order[1]];
+  const expectedHighIdx = targetIndices[order[2]];
+  
+  for (let f = 0; f <= maxFret; f++) {
+    const note0 = getNoteAt(s0, f);
+    if (note0.noteIdx === expectedLowestIdx) {
+      let foundMid = -1, foundHigh = -1;
+      for (let df = -4; df <= 4; df++) {
+        const f1 = f + df;
+        if (f1 >= 0 && f1 <= 24 && getNoteAt(s1, f1).noteIdx === expectedMidIdx) foundMid = f1;
+      }
+      for (let df = -4; df <= 4; df++) {
+        const f2 = f + df;
+        if (f2 >= 0 && f2 <= 24 && getNoteAt(s2, f2).noteIdx === expectedHighIdx) foundHigh = f2;
+      }
+      
+      if (foundMid !== -1 && foundHigh !== -1) {
+        results.push({
+          rootFret: f,
+          positions: [
+            { ...note0, intervalLabel: labels[order[0]], isRoot: order[0] === 0 },
+            { ...getNoteAt(s1, foundMid), intervalLabel: labels[order[1]], isRoot: order[1] === 0 },
+            { ...getNoteAt(s2, foundHigh), intervalLabel: labels[order[2]], isRoot: order[2] === 0 }
+          ]
+        });
+      }
+    }
+  }
+  return results;
+}
+
+/* ─── Arpeggios ─────────────────────────────────────────────── */
+
+export const ARPEGGIO_TYPES = [
+  { name: 'Major 7', short: 'Maj7', intervals: [0, 4, 7, 11] },
+  { name: 'Minor 7', short: 'min7', intervals: [0, 3, 7, 10] },
+  { name: 'Dominant 7', short: '7', intervals: [0, 4, 7, 10] },
+  { name: 'Minor 7♭5', short: 'm7♭5', intervals: [0, 3, 6, 10] },
+  { name: 'Diminished 7', short: 'dim7', intervals: [0, 3, 6, 9] },
+  { name: 'Augmented', short: 'aug', intervals: [0, 4, 8] },
+];
+
+export function getArpeggioPositions(rootIdx, arpeggioType, minFret = 0, maxFret = 15) {
+  const arp = ARPEGGIO_TYPES.find(a => a.name === arpeggioType || a.short === arpeggioType);
+  if (!arp) return [];
+  const intervals = arp.intervals;
+  
+  let labels = [];
+  if (arp.short === 'Maj7') labels = ['R', '3', '5', '7'];
+  if (arp.short === 'min7') labels = ['R', '♭3', '5', '♭7'];
+  if (arp.short === '7') labels = ['R', '3', '5', '♭7'];
+  if (arp.short === 'm7♭5') labels = ['R', '♭3', '♭5', '♭7'];
+  if (arp.short === 'dim7') labels = ['R', '♭3', '♭5', '𝄫7'];
+  if (arp.short === 'aug') labels = ['R', '3', '#5'];
+
+  const targetIndices = intervals.map(i => (rootIdx + i) % 12);
+  const positions = [];
+  
+  for (let s = 0; s < 6; s++) {
+    for (let f = minFret; f <= maxFret; f++) {
+      const note = getNoteAt(s, f);
+      const pos = targetIndices.indexOf(note.noteIdx);
+      if (pos !== -1) {
+        positions.push({
+          ...note,
+          interval: intervals[pos],
+          intervalLabel: labels[pos],
+          isRoot: pos === 0
+        });
+      }
+    }
+  }
+  return positions;
+}
+
+/* ─── Mode Info ─────────────────────────────────────────────── */
+
+export const MODE_INFO = {
+  'Ionian': { parent: 'Major', degree: 1, characteristic: 4, charLabel: '4 (natural 4th)', mood: 'Happy, bright' },
+  'Dorian': { parent: 'Major', degree: 2, characteristic: 9, charLabel: '♮6 (major 6th)', mood: 'Smooth, jazzy minor' },
+  'Phrygian': { parent: 'Major', degree: 3, characteristic: 1, charLabel: '♭2 (flat 2nd)', mood: 'Dark, Spanish' },
+  'Lydian': { parent: 'Major', degree: 4, characteristic: 6, charLabel: '#4 (sharp 4th)', mood: 'Dreamy, floating' },
+  'Mixolydian': { parent: 'Major', degree: 5, characteristic: 10, charLabel: '♭7 (flat 7th)', mood: 'Bluesy, rock' },
+  'Aeolian': { parent: 'Major', degree: 6, characteristic: 8, charLabel: '♭6 (flat 6th)', mood: 'Sad, natural minor' },
+  'Locrian': { parent: 'Major', degree: 7, characteristic: 6, charLabel: '♭5 (flat 5th)', mood: 'Unstable, tense' },
+};

@@ -23,6 +23,15 @@ function getDefault() {
       practiceString: null,
       accidentalPref: 'sharp', // 'sharp' = C# D# etc, 'flat' = D♭ E♭ etc
       lang: 'en',
+      // Drum machine settings
+      drumPattern: 'rock',
+      drumSound: 'kit',       // 'kit' | 'click' | 'hihat'
+      metronomeBpm: 80,
+      swing: 0,
+      countIn: true,
+      speedTrainer: { enabled: false, startBpm: 60, endBpm: 120, increment: 5, barsPerStep: 4, secondsPerStep: 10 },
+      // Interval training level (progressive unlock)
+      intervalLevel: 1,
     },
     records: {
       // { mode: { bestTime, bestScore, totalPlayed, totalCorrect } }
@@ -32,6 +41,7 @@ function getDefault() {
       'ear-training': { bestTime: null, bestScore: 0, totalPlayed: 0, totalCorrect: 0 },
       'interval-training': { bestTime: null, bestScore: 0, totalPlayed: 0, totalCorrect: 0 },
       'chord-quiz': { bestTime: null, bestScore: 0, totalPlayed: 0, totalCorrect: 0 },
+      'octave-navigator': { bestTime: null, bestScore: 0, totalPlayed: 0, totalCorrect: 0 },
     },
     achievements: [], // array of unlocked achievement IDs
     // Accuracy heatmap: heatmap[stringIdx][fret] = { correct, total }
@@ -40,6 +50,12 @@ function getDefault() {
     ),
     streak: { current: 0, best: 0 },
     totalSessions: 0,
+    // XP & Level system
+    xp: 0,
+    // Journey progress: { stageId: { bestPct, bestStars, attempts, lastPlayed } }
+    journey: {},
+    // Session history for trend charts: [{ date, mode, correct, total, timeMs }]
+    sessionHistory: [],
   };
 }
 
@@ -150,6 +166,22 @@ export function recordSession(mode, correct, total, timeMs) {
   if (score > rec.bestScore) rec.bestScore = score;
   if (rec.bestTime === null || timeMs < rec.bestTime) rec.bestTime = timeMs;
   data.totalSessions++;
+
+  // XP: +10 per correct, +5 combo bonus per 3-streak, +50 for perfect
+  const xpGained = correct * 10 + Math.floor(correct / 3) * 5 + (score >= 100 ? 50 : 0);
+  if (!data.xp) data.xp = 0;
+  data.xp += xpGained;
+
+  // Session history for trend charts (keep last 90 entries)
+  if (!data.sessionHistory) data.sessionHistory = [];
+  data.sessionHistory.push({
+    date: new Date().toISOString().slice(0, 10),
+    mode, correct, total, timeMs, score,
+  });
+  if (data.sessionHistory.length > 90) {
+    data.sessionHistory = data.sessionHistory.slice(-90);
+  }
+
   save(data);
 
   // Check for newly unlocked achievements
@@ -159,6 +191,7 @@ export function recordSession(mode, correct, total, timeMs) {
     isNewBestTime: rec.bestTime === timeMs,
     isNewBestScore: rec.bestScore === score,
     newBadges,
+    xpGained,
   };
 }
 
@@ -334,4 +367,69 @@ export function getAchievements() {
   const data = getData();
   const unlocked = new Set(data.achievements || []);
   return ACHIEVEMENTS.map(a => ({ ...a, unlocked: unlocked.has(a.id) }));
+}
+
+/* ─── XP & Level System ─────────────────────────────────────── */
+
+/** XP thresholds for each level (cumulative) */
+const LEVEL_XP = [
+  0, 100, 250, 500, 800, 1200, 1700, 2300, 3000, 3800,    // Lv 1-10
+  4700, 5700, 6800, 8000, 9500, 11000, 13000, 15000, 17500, 20000, // Lv 11-20
+];
+
+const LEVEL_NAMES = [
+  'Beginner', 'Novice', 'Apprentice', 'Student', 'Practitioner',
+  'Intermediate', 'Skilled', 'Advanced', 'Expert', 'Virtuoso',
+  'Adept', 'Journeyman', 'Artisan', 'Specialist', 'Professional',
+  'Elite', 'Master', 'Grandmaster', 'Legend', 'Fretboard God',
+];
+
+export function getXPInfo() {
+  const data = getData();
+  const xp = data.xp || 0;
+  let level = 1;
+  for (let i = LEVEL_XP.length - 1; i >= 0; i--) {
+    if (xp >= LEVEL_XP[i]) { level = i + 1; break; }
+  }
+  const currentLevelXP = LEVEL_XP[level - 1] || 0;
+  const nextLevelXP = LEVEL_XP[level] || LEVEL_XP[LEVEL_XP.length - 1] + 5000;
+  return {
+    xp,
+    level,
+    levelName: LEVEL_NAMES[level - 1] || 'Legend',
+    currentLevelXP,
+    nextLevelXP,
+    progress: (xp - currentLevelXP) / (nextLevelXP - currentLevelXP),
+  };
+}
+
+/** Get session history for trend charts */
+export function getSessionHistory(days = 7) {
+  const data = getData();
+  const history = data.sessionHistory || [];
+  const result = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+    const daySessions = history.filter(s => s.date === dateStr);
+    const totalCorrect = daySessions.reduce((sum, s) => sum + s.correct, 0);
+    const totalQ = daySessions.reduce((sum, s) => sum + s.total, 0);
+    result.push({
+      date: dateStr,
+      sessions: daySessions.length,
+      accuracy: totalQ > 0 ? Math.round((totalCorrect / totalQ) * 100) : null,
+      totalQuestions: totalQ,
+    });
+  }
+  return result;
+}
+
+/** Get/set interval training level */
+export function getIntervalLevel() {
+  return getSettings().intervalLevel || 1;
+}
+
+export function setIntervalLevel(level) {
+  saveSettings({ intervalLevel: level });
 }

@@ -1,0 +1,78 @@
+/* Arpeggios Screen Styles */
+.arpeggios-screen .controls-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 10px 0;
+}
+
+.arpeggios-screen .control-group {
+  display: flex;
+  align-items: center;
+}
+
+.arpeggios-screen .control-group label {
+  width: 70px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.arpeggios-screen .scroll-x {
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 4px;
+}
+
+.arpeggios-screen .scroll-x::-webkit-scrollbar {
+  height: 4px;
+}
+.arpeggios-screen .scroll-x::-webkit-scrollbar-thumb {
+  background: var(--bg-hover);
+  border-radius: 4px;
+}
+
+.arpeggios-screen .picker {
+  display: flex;
+  gap: 8px;
+}
+
+.arpeggios-screen .picker-btn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.arpeggios-screen .picker-btn.active {
+  background: var(--accent);
+  color: #000;
+  border-color: var(--accent);
+}
+
+.arpeggios-screen .legend {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-top: 15px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.arpeggios-screen .legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.arpeggios-screen .dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+}

@@ -1,20 +1,19 @@
 // ─── Home Screen ──────────────────────────────────────────────
-// Landing page with mode cards, settings panel, metronome
+// Landing page with mode cards, settings panel, tools
 
 import { STANDARD_TUNING } from '../core/music.js';
 import { unlockAudio } from '../core/audio.js';
-import * as metronome from '../core/metronome.js';
 import * as store from '../core/storage.js';
 import { t, setLang, getLang } from '../core/i18n.js';
 
 export function render(ctx) {
-  metronome.stop();
   const { app, $, $$, showScreen } = ctx;
   const settings = store.getSettings();
   const streak = store.getStreak();
   const achievements = store.getAchievements();
   const unlockedCount = achievements.filter(a => a.unlocked).length;
   const calendar = store.getPracticeHistory(7);
+  const xpInfo = store.getXPInfo();
 
   // Sync i18n with saved preference
   if (settings.lang) setLang(settings.lang);
@@ -31,11 +30,26 @@ export function render(ctx) {
           <button class="lang-toggle" id="langToggle">${lang === 'en' ? '中文' : 'EN'}</button>
         </div>
         <p class="tagline">${t('tagline')}</p>
+        <div class="xp-level-badge">
+          <span class="xp-level">Lv.${xpInfo.level}</span>
+          <span class="xp-name">${xpInfo.levelName}</span>
+          <div class="xp-bar"><div class="xp-fill" style="width:${Math.round(xpInfo.progress * 100)}%"></div></div>
+        </div>
         ${streak.best > 0 ? `<div class="streak-badge">${t('bestStreak')}: ${streak.best}</div>` : ''}
         <div class="practice-calendar">
           ${calendar.map(d => `<div class="cal-day ${d.practiced ? 'practiced' : ''}"><span class="cal-label">${d.dayName}</span><span class="cal-dot">${d.practiced ? '●' : '○'}</span></div>`).join('')}
         </div>
       </header>
+
+      <!-- Learning Journey -->
+      <div class="journey-banner" id="journeyBanner">
+        <div class="journey-banner-icon">🗺️</div>
+        <div class="journey-banner-info">
+          <h3>${t('learningJourney')}</h3>
+          <p>${t('learningJourneyDesc')}</p>
+        </div>
+        <div class="mode-arrow">→</div>
+      </div>
 
       <div class="mode-cards">
         <button class="mode-card" data-mode="find-note">
@@ -83,6 +97,15 @@ export function render(ctx) {
           <div class="mode-arrow">→</div>
         </button>
 
+        <button class="mode-card" data-mode="octave-navigator">
+          <div class="mode-icon">🔄</div>
+          <div class="mode-info">
+            <h3>${t('octaveNavigator')}</h3>
+            <p>${t('octaveNavigatorDesc')}</p>
+          </div>
+          <div class="mode-arrow">→</div>
+        </button>
+
         <button class="mode-card" data-mode="speed-run">
           <div class="mode-icon">⚡</div>
           <div class="mode-info">
@@ -112,6 +135,10 @@ export function render(ctx) {
       </div>
 
       <div class="tool-cards">
+        <button class="tool-card" id="drummerBtn">
+          <span class="tool-icon">🥁</span>
+          <span>${t('drumMachine')}</span>
+        </button>
         <button class="tool-card" id="scaleExplorerBtn">
           <span class="tool-icon">🎼</span>
           <span>${t('scaleExplorer')}</span>
@@ -127,6 +154,18 @@ export function render(ctx) {
         <button class="tool-card" id="circleBtn">
           <span class="tool-icon">🔵</span>
           <span>Circle of 5ths</span>
+        </button>
+        <button class="tool-card" id="triadBtn">
+          <span class="tool-icon">🔺</span>
+          <span>${t('triadTrainer')}</span>
+        </button>
+        <button class="tool-card" id="arpeggioBtn">
+          <span class="tool-icon">🎹</span>
+          <span>${t('arpeggioExplorer')}</span>
+        </button>
+        <button class="tool-card" id="modeBtn">
+          <span class="tool-icon">🌈</span>
+          <span>${t('modeExplorer')}</span>
         </button>
       </div>
 
@@ -177,17 +216,6 @@ export function render(ctx) {
             <button class="sf-btn ${(settings.accidentalPref || 'sharp') === 'flat' ? 'active' : ''}" data-acc="flat">♭ D♭ E♭</button>
           </div>
         </div>      </div>
-
-      <div class="metronome-bar" id="metronomeBar">
-        <button class="metro-toggle" id="metroToggle">${t('metronome')}</button>
-        <div class="metro-controls" id="metroControls" style="display:none">
-          <button class="metro-play" id="metroPlay">▶</button>
-          <input type="range" id="metroBpm" min="40" max="240" value="${settings.metronomeBpm || 80}" />
-          <span class="metro-bpm-val" id="metroBpmVal">${settings.metronomeBpm || 80}</span>
-          <span class="metro-bpm-label">BPM</span>
-          <div class="metro-pulse" id="metroPulse"></div>
-        </div>
-      </div>
 
       <div class="home-footer-links">
         <button class="stats-link" id="statsBtn">${t('progress')}</button>
@@ -244,6 +272,18 @@ export function render(ctx) {
 
   $('#statsBtn', app).addEventListener('click', () => showScreen('stats'));
   $('#achieveBtn', app).addEventListener('click', () => showScreen('stats'));
+
+  // Journey
+  $('#journeyBanner', app).addEventListener('click', () => {
+    unlockAudio();
+    showScreen('journey');
+  });
+
+  // Tool buttons
+  $('#drummerBtn', app).addEventListener('click', () => {
+    unlockAudio();
+    showScreen('drummer');
+  });
   $('#scaleExplorerBtn', app).addEventListener('click', () => {
     unlockAudio();
     showScreen('scales');
@@ -260,35 +300,17 @@ export function render(ctx) {
     unlockAudio();
     showScreen('circle');
   });
-
-  // Metronome
-  $('#metroToggle', app).addEventListener('click', () => {
-    const ctrl = $('#metroControls', app);
-    ctrl.style.display = ctrl.style.display === 'none' ? 'flex' : 'none';
-  });
-  const bpmSlider = $('#metroBpm', app);
-  const bpmVal = $('#metroBpmVal', app);
-  bpmSlider.addEventListener('input', () => {
-    bpmVal.textContent = bpmSlider.value;
-  });
-  $('#metroPlay', app).addEventListener('click', () => {
+  $('#triadBtn', app).addEventListener('click', () => {
     unlockAudio();
-    const btn = $('#metroPlay', app);
-    const pulse = $('#metroPulse', app);
-    if (metronome.running()) {
-      metronome.stop();
-      btn.textContent = '▶';
-      pulse.classList.remove('beating');
-    } else {
-      const bpm = parseInt(bpmSlider.value);
-      store.saveSettings({ metronomeBpm: bpm });
-      metronome.start(bpm, 4, (beat, accent) => {
-        pulse.classList.remove('beating');
-        void pulse.offsetWidth;
-        pulse.classList.add('beating');
-      });
-      btn.textContent = '⏸';
-    }
+    showScreen('triads');
+  });
+  $('#arpeggioBtn', app).addEventListener('click', () => {
+    unlockAudio();
+    showScreen('arpeggios');
+  });
+  $('#modeBtn', app).addEventListener('click', () => {
+    unlockAudio();
+    showScreen('modes');
   });
 }
 
@@ -309,3 +331,4 @@ export function saveCurrentSettings(ctx) {
   const accidentalPref = activeAccBtn ? activeAccBtn.dataset.acc : 'sharp';
   store.saveSettings({ minFret, maxFret, questionCount, practiceString, intervalDirection, accidentalPref });
 }
+

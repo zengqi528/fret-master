@@ -2,6 +2,7 @@
 // Progress tracking, heatmap, achievements, data management
 
 import * as store from '../core/storage.js';
+import { getXPInfo, getSessionHistory } from '../core/storage.js';
 import { t, modeLabels as getModeLabels } from '../core/i18n.js';
 
 export function render(ctx) {
@@ -10,6 +11,29 @@ export function render(ctx) {
   const heatmap = store.getHeatmapData();
   const streak = store.getStreak();
   const achievements = store.getAchievements();
+
+  const xpInfo = getXPInfo();
+  const xpPct = Math.min(100, Math.max(0, xpInfo.progress * 100));
+
+  const history = getSessionHistory(7);
+  let chartHtml = '<div class="trend-chart" style="display: flex; align-items: flex-end; justify-content: space-between; height: 120px; margin-top: 15px; margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1);">';
+  
+  history.forEach(day => {
+    const d = new Date(day.date);
+    const dateLabel = d.getDate(); // e.g. "12"
+    const pct = day.accuracy;
+    const height = pct !== null ? pct : 0;
+    const color = pct !== null ? (pct >= 90 ? '#00e676' : pct >= 70 ? '#66bb6a' : pct >= 50 ? '#ffa726' : '#ff5252') : '#333';
+    
+    chartHtml += `
+      <div class="trend-bar-container" style="display: flex; flex-direction: column; align-items: center; width: 12%; height: 100%; justify-content: flex-end; position: relative;">
+        ${pct !== null ? `<span style="font-size: 0.7rem; color: #aaa; margin-bottom: 4px;">${pct}%</span>` : ''}
+        <div class="trend-bar" style="width: 100%; height: ${Math.max(4, height)}%; background: ${color}; border-radius: 4px 4px 0 0; opacity: ${pct !== null ? 1 : 0.2};"></div>
+        <span style="position: absolute; bottom: -20px; font-size: 0.75rem; color: #888;">${d.getMonth()+1}/${dateLabel}</span>
+      </div>
+    `;
+  });
+  chartHtml += '</div>';
 
   let heatmapHtml = '<div class="heatmap-grid">';
   const stringLabels = ['E', 'A', 'D', 'G', 'B', 'e'];
@@ -40,6 +64,17 @@ export function render(ctx) {
       <div class="stats-header">
         <button class="back-btn" id="statsBack">←</button>
         <h2>${t('progress')}</h2>
+      </div>
+
+      <div class="stats-section xp-section" style="background: rgba(0,0,0,0.2); padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; text-align: center;">
+        <div style="font-size: 1.2rem; color: #fff; margin-bottom: 0.5rem;">${t('xpLevel')} ${xpInfo.level}: <span style="color: #ffd700;">${xpInfo.levelName}</span></div>
+        <div class="xp-bar-bg" style="background: rgba(255,255,255,0.1); height: 12px; border-radius: 6px; overflow: hidden; margin-bottom: 0.5rem;">
+          <div class="xp-bar-fill" style="background: #00e676; height: 100%; width: ${xpPct}%; transition: width 1s ease-out;"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: #aaa;">
+          <span>${xpInfo.xp} XP</span>
+          <span>${xpInfo.nextLevelXP} XP</span>
+        </div>
       </div>
 
       <div class="stats-overview">
@@ -76,6 +111,11 @@ export function render(ctx) {
             </div>
           `).join('')}
         </div>
+      </div>
+
+      <div class="stats-section">
+        <h3>${t('weeklyTrend')}</h3>
+        ${chartHtml}
       </div>
 
       <div class="stats-section">

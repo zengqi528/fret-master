@@ -1,0 +1,255 @@
+/* ─── Journey Screen Styles ────────────────────────────────────────── */
+
+.journey-screen {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: var(--bg-color, #121212);
+  color: var(--text-color, #ffffff);
+  overflow-y: auto;
+}
+
+.journey-header {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  background: var(--surface-color, #1e1e1e);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.journey-header h2 {
+  margin: 0 0 0 16px;
+  font-size: 20px;
+}
+
+.journey-path {
+  padding: 32px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 600px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.stage-node {
+  display: flex;
+  align-items: center;
+  background: var(--surface-color, #1e1e1e);
+  border-radius: 12px;
+  padding: 16px;
+  width: 100%;
+  box-sizing: border-box;
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+  border: 2px solid transparent;
+}
+
+.stage-node.unlocked {
+  border-color: var(--primary-color, #4caf50);
+}
+
+.stage-node.unlocked:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
+}
+
+.stage-node.locked {
+  opacity: 0.6;
+  filter: grayscale(100%);
+  cursor: not-allowed;
+}
+
+.stage-icon {
+  font-size: 32px;
+  margin-right: 16px;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.1);
+  border-radius: 50%;
+}
+
+.stage-content {
+  flex: 1;
+}
+
+.stage-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.stage-title {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.stage-stars {
+  font-size: 14px;
+  color: #ffd700;
+  letter-spacing: 2px;
+}
+
+.stage-desc {
+  font-size: 14px;
+  color: #aaaaaa;
+}
+
+.stage-connector {
+  width: 4px;
+  height: 40px;
+  background: var(--surface-color, #1e1e1e);
+  margin: 4px 0;
+}
+
+.stage-connector.unlocked {
+  background: var(--primary-color, #4caf50);
+}
+
+/* Modal */
+.journey-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.journey-modal {
+  background: var(--surface-color, #1e1e1e);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 400px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  animation: modalIn 0.3s ease-out;
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.modal-header {
+  padding: 20px;
+  background: rgba(255,255,255,0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: #aaa;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.modal-desc {
+  margin: 0 0 20px 0;
+  color: #ccc;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.modal-stats {
+  display: flex;
+  justify-content: space-between;
+  background: rgba(0,0,0,0.2);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.stat-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #888;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.stat-value {
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--primary-color, #4caf50);
+}
+
+.modal-tips {
+  background: rgba(33, 150, 243, 0.1);
+  border-left: 4px solid #2196f3;
+  padding: 12px 16px;
+  border-radius: 4px;
+}
+
+.modal-tips h4 {
+  margin: 0 0 8px 0;
+  color: #2196f3;
+  font-size: 14px;
+}
+
+.modal-tips ul {
+  margin: 0;
+  padding-left: 20px;
+  color: #ddd;
+  font-size: 14px;
+}
+
+.modal-tips li {
+  margin-bottom: 4px;
+}
+
+.modal-tips li:last-child {
+  margin-bottom: 0;
+}
+
+.modal-footer {
+  padding: 20px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.modal-footer .btn-primary {
+  width: 100%;
+  padding: 14px;
+  font-size: 16px;
+  font-weight: bold;
+  background: var(--primary-color, #4caf50);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.modal-footer .btn-primary:hover {
+  background: #45a049;
+}

@@ -8,7 +8,7 @@ import {
   NOTES, NOTES_FLAT, INTERVALS, CHORDS, STANDARD_TUNING,
 } from '../core/music.js';
 import { playNote, playCorrect, playWrong } from '../core/audio.js';
-import * as metronome from '../core/metronome.js';
+import * as rhythm from '../core/rhythm.js';
 import * as store from '../core/storage.js';
 import { modeLabels as getModeLabels } from '../core/i18n.js';
 
@@ -84,7 +84,7 @@ export function render(ctx, mode) {
 
   $('#gameBack', app).addEventListener('click', () => {
     clearInterval(gameState.timerInterval);
-    metronome.stop();
+    rhythm.stop();
     showScreen('home');
   });
 
@@ -108,6 +108,8 @@ function nextQuestion() {
 
   gameState.questionIdx++;
   gameState.answered = false;
+  gameState.hintUsed = false;
+  clearTimeout(gameState.hintTimeout);
   _ctx.$('#gameCounter').textContent = `${gameState.questionIdx} / ${gameState.totalQuestions}`;
   fretboard.clearHighlights();
   fretboard.setInteractive(true);
@@ -128,7 +130,39 @@ function nextQuestion() {
       setupDailyChallenge(); break;
     case 'chord-quiz':
       setupChordQuiz(); break;
+    case 'octave-navigator':
+      setupOctaveNavigator(); break;
   }
+}
+
+function startHintTimer(targetIdx) {
+  clearTimeout(gameState.hintTimeout);
+  gameState.hintTimeout = setTimeout(() => {
+    if (gameState.answered) return;
+    const prompt = _ctx.$('#gamePrompt');
+    if (prompt && !prompt.querySelector('#hintBtn')) {
+      const btn = document.createElement('button');
+      btn.id = 'hintBtn';
+      btn.className = 'hint-btn';
+      btn.innerHTML = '💡 Hint';
+      btn.style.marginLeft = '10px';
+      btn.onclick = () => {
+        gameState.hintUsed = true;
+        btn.style.display = 'none';
+        
+        for (let s = 0; s < 6; s++) {
+          if (gameState.practiceString !== null && s !== gameState.practiceString) continue;
+          for (let f = gameState.minFret; f <= gameState.maxFret; f++) {
+            if (getNoteAt(s, f, gameState.pref).noteIdx === targetIdx) {
+              fretboard.highlightActiveString(s);
+              return;
+            }
+          }
+        }
+      };
+      prompt.appendChild(btn);
+    }
+  }, 5000);
 }
 
 /* ── Find Note ── */
@@ -158,6 +192,8 @@ function setupFindNote() {
   // Resolve target noteIdx for enharmonic-safe matching
   let targetIdx = NOTES.indexOf(noteName);
   if (targetIdx < 0) targetIdx = NOTES_FLAT.indexOf(noteName);
+  
+  startHintTimer(targetIdx);
 
   fretboard.onFretClick = (s, f) => {
     if (gameState.answered) return;
@@ -230,6 +266,7 @@ function setupEarTraining() {
 
   setTimeout(() => {
     fretboard.setInteractive(true);
+    startHintTimer(pos.noteIdx);
     fretboard.onFretClick = (s, f) => {
       if (gameState.answered) return;
       const note = getNoteAt(s, f, pref);
@@ -245,7 +282,26 @@ function setupEarTraining() {
 function setupIntervalTraining() {
   const { $, $$ } = _ctx;
   const rootMidi = 40 + Math.floor(Math.random() * 24);
-  const correct = INTERVALS[Math.floor(Math.random() * INTERVALS.length)];
+  
+  let currentLevel = store.getIntervalLevel();
+  if (currentLevel < 5 && gameState.questionIdx > 1 && (gameState.questionIdx - 1) % 10 === 0) {
+      const recentAcc = gameState.correct / (gameState.questionIdx - 1);
+      if (recentAcc >= 0.8) {
+          currentLevel++;
+          store.setIntervalLevel(currentLevel);
+      }
+  }
+  
+  const INTERVAL_LEVELS = [
+    [7, 5, 12],           // Level 1: P5(7), P4(5), P8(12)
+    [4, 3],               // Level 2: + M3(4), m3(3)
+    [2, 11],              // Level 3: + M2(2), M7(11)
+    [1, 10],              // Level 4: + m2(1), m7(10)
+    [6, 9, 8],            // Level 5: + TT(6), M6(9), m6(8)
+  ];
+  const allowedSemitones = INTERVAL_LEVELS.slice(0, currentLevel).flat();
+  const availableIntervals = INTERVALS.filter(i => allowedSemitones.includes(i.semitones));
+  const correct = availableIntervals[Math.floor(Math.random() * availableIntervals.length)];
 
   const dirSetting = gameState.intervalDirection || 'ascending';
   let direction;
@@ -262,7 +318,7 @@ function setupIntervalTraining() {
   fretboard.onFretClick = null;
   fretboard.setInteractive(false);
 
-  const wrongs = INTERVALS.filter(i => i.semitones !== correct.semitones)
+  const wrongs = availableIntervals.filter(i => i.semitones !== correct.semitones)
     .sort(() => Math.random() - 0.5).slice(0, 3);
   const choices = [correct, ...wrongs].sort(() => Math.random() - 0.5);
 
@@ -368,6 +424,103 @@ function setupDailyChallenge() {
     const isCorrect = clicked.noteIdx === targetIdx &&
       f >= gameState.minFret && f <= gameState.maxFret;
     handleAnswer(isCorrect, s, f, noteName);
+  };
+}
+
+/* ── Octave Navigator ── */
+function setupOctaveNavigator() {
+  const { $, $$ } = _ctx;
+  const pref = gameState.pref;
+  const pos = getRandomPositionFiltered(gameState.minFret, gameState.maxFret, gameState.practiceString, pref);
+  const targetNote = getNoteAt(pos.string, pos.fret, pref);
+  const targetIdx = targetNote.noteIdx;
+  gameState.currentQuestion = { noteName: targetNote.name };
+
+  const allPositions = [];
+  for (let s = 0; s < 6; s++) {
+    for (let f = gameState.minFret; f <= gameState.maxFret; f++) {
+      if (getNoteAt(s, f, pref).noteIdx === targetIdx) {
+        allPositions.push({ string: s, fret: f });
+      }
+    }
+  }
+
+  let foundCount = 0;
+  const totalCount = allPositions.length;
+  gameState.foundPositions = new Set();
+
+  fretboard.highlight(pos.string, pos.fret, '#00d4aa', true);
+  gameState.foundPositions.add(`${pos.string}-${pos.fret}`);
+  foundCount++;
+
+  $('#gamePrompt').innerHTML = `
+    <div class="prompt-find">
+      <span class="prompt-label">Find all octaves of</span>
+      <span class="prompt-note">${targetNote.name}</span>
+      <span class="prompt-hint" id="octaveHint">${foundCount}/${totalCount}</span>
+    </div>
+  `;
+  $('#gameChoices').innerHTML = '';
+
+  startHintTimer(targetIdx);
+
+  const finishOctaveQuestion = () => {
+    if (gameState.answered) return;
+    gameState.answered = true;
+    fretboard.setInteractive(false);
+    clearTimeout(gameState.octaveTimeout);
+    clearTimeout(gameState.hintTimeout);
+
+    const isPerfect = foundCount >= totalCount;
+    if (isPerfect) {
+      playCorrect();
+    } else {
+      playWrong();
+      fretboard.showAllPositions(targetNote.name, gameState.minFret, gameState.maxFret);
+    }
+    
+    setTimeout(nextQuestion, isPerfect ? 600 : 1500);
+  };
+
+  gameState.octaveTimeout = setTimeout(() => {
+    if (!gameState.answered) {
+      allPositions.forEach(p => {
+        const key = `${p.string}-${p.fret}`;
+        if (!gameState.foundPositions.has(key)) {
+           store.recordAnswer(p.string, p.fret, false);
+           gameState.wrong++;
+        }
+      });
+      finishOctaveQuestion();
+    }
+  }, 15000);
+
+  fretboard.onFretClick = (s, f) => {
+    if (gameState.answered) return;
+    
+    const key = `${s}-${f}`;
+    if (gameState.foundPositions.has(key)) return;
+    
+    const clickedNote = getNoteAt(s, f, pref);
+    if (clickedNote.noteIdx === targetIdx && f >= gameState.minFret && f <= gameState.maxFret) {
+      gameState.foundPositions.add(key);
+      gameState.correct++;
+      foundCount++;
+      store.recordAnswer(s, f, true);
+      fretboard.showCorrect(s, f);
+      playNote(midiToFreq(clickedNote.midi));
+      
+      $('#octaveHint', _ctx.app).textContent = `${foundCount}/${totalCount}`;
+      
+      if (foundCount >= totalCount) {
+        finishOctaveQuestion();
+      }
+    } else {
+      gameState.wrong++;
+      store.recordAnswer(s, f, false);
+      fretboard.showWrong(s, f);
+      playWrong();
+    }
   };
 }
 
@@ -532,7 +685,7 @@ function handleChordAnswer(isCorrect, btnEl, correctChord) {
 
 function endGame() {
   clearInterval(gameState.timerInterval);
-  metronome.stop();
+  rhythm.stop();
   const totalTime = Date.now() - gameState.startTime;
   const { isNewBestTime, isNewBestScore, newBadges } = store.recordSession(
     gameState.mode, gameState.correct, gameState.totalQuestions, totalTime

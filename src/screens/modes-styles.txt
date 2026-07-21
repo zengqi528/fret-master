@@ -1,0 +1,140 @@
+/* Modes Screen Styles */
+.modes-screen .controls-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 10px 0;
+}
+
+.modes-screen .control-group {
+  display: flex;
+  align-items: center;
+}
+
+.modes-screen .control-group label {
+  width: 80px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.modes-screen .scroll-x {
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 4px;
+}
+
+.modes-screen .scroll-x::-webkit-scrollbar {
+  height: 4px;
+}
+.modes-screen .scroll-x::-webkit-scrollbar-thumb {
+  background: var(--bg-hover);
+  border-radius: 4px;
+}
+
+.modes-screen .picker {
+  display: flex;
+  gap: 8px;
+}
+
+.modes-screen .picker-btn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.modes-screen .picker-btn.active {
+  background: var(--accent);
+  color: #000;
+  border-color: var(--accent);
+}
+
+.modes-screen .mode-info-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  margin: 15px 0;
+  text-align: center;
+}
+
+.modes-screen .mode-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.modes-screen .compare-title {
+  color: #da77f2;
+}
+
+.modes-screen .mode-desc {
+  font-style: italic;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.modes-screen .mode-char {
+  color: var(--text);
+  font-size: 14px;
+}
+
+.modes-screen .mode-parent {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.modes-screen .action-bar {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.modes-screen .action-btn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.modes-screen .action-btn:active {
+  background: var(--bg-hover);
+}
+
+.modes-screen .legend {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-top: 15px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.modes-screen .legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.modes-screen .dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.modes-screen .root-color { background: #ffd700; }
+.modes-screen .char-color { background: #da77f2; }
+.modes-screen .scale-color { background: #00d4aa; }
