@@ -2180,9 +2180,10 @@ body {
   flex-direction: column;
   height: 100%;
   background: var(--bg-deep);
+  padding: 12px 12px 0;
 }
 .drummer-content {
-  padding: 16px;
+  padding: 12px 4px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -2190,6 +2191,7 @@ body {
   max-width: 480px;
   margin: 0 auto;
   width: 100%;
+  flex: 1;
 }
 .drum-card {
   background: var(--bg-surface);
@@ -2199,12 +2201,18 @@ body {
 }
 .drum-tabs {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   margin-bottom: 12px;
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 4px;
 }
+.drum-tabs::-webkit-scrollbar { display: none; }
 .drum-tab {
-  flex: 1;
-  padding: 8px;
+  flex-shrink: 0;
+  padding: 6px 12px;
   background: var(--bg-deep);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);

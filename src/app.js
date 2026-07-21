@@ -46,6 +46,17 @@ function showScreen(name, data = {}) {
   void app.offsetWidth;
   app.classList.add('screen-enter');
 
+  // Screens that work well in portrait mode — suppress rotation prompt
+  const portraitFriendly = ['home', 'drummer', 'triads', 'arpeggios', 'modes', 'journey', 'stats'];
+  const rotatePrompt = document.getElementById('rotatePrompt');
+  if (rotatePrompt) {
+    if (portraitFriendly.includes(name)) {
+      rotatePrompt.classList.add('dismissed');
+    } else {
+      rotatePrompt.classList.remove('dismissed');
+    }
+  }
+
   switch (name) {
     case 'home':      homeScreen.render(ctx); break;
     case 'game':      gameScreen.render(ctx, data.mode); break;

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fret-master-v4';
+const CACHE_NAME = 'fret-master-v5';
 
 self.addEventListener('install', (e) => {
   // Skip waiting — activate immediately
